@@ -31,30 +31,28 @@
 ############################################
 ../bin/M2-Planet --debug --architecture x86 \
 	-f ../mes-m2/mes.h \
-	-f ../mes-m2/mes_constants.h \
+	-f ../M2-Planet/test/common_x86/functions/file.c \
 	-f ../M2-Planet/test/common_x86/functions/exit.c \
 	-f ../M2-Planet/test/common_x86/functions/malloc.c \
-	-f ../mes-m2/functions/x86/fdputc.c \
 	-f ../M2-Planet/functions/calloc.c \
-	-f ../mes-m2/functions/file_print.c \
-	-f ../mes-m2/functions/numerate.c \
-	-f ../mes-m2/functions/in_set.c \
-	-f ../mes-m2/functions/match.c \
-	-f ../mes-m2/mes_builtins.c \
 	-f ../mes-m2/mes.c \
+	-f ../mes-m2/mes_cell.c \
+	-f ../mes-m2/mes_builtins.c \
 	-f ../mes-m2/mes_eval.c \
-	-f ../mes-m2/mes_gc.c \
-	-f ../mes-m2/mes_hash.c \
+	-f ../mes-m2/mes_print.c \
+	-f ../mes-m2/mes_read.c \
+	-f ../mes-m2/mes_tokenize.c \
+	-f ../mes-m2/mes_vector.c \
+	-f ../mes-m2/mes_list.c \
+	-f ../mes-m2/mes_string.c \
+	-f ../mes-m2/mes_record.c \
 	-f ../mes-m2/mes_init.c \
-	-f ../mes-m2/mes_lib.c \
-	-f ../mes-m2/mes_math.c \
-	-f ../mes-m2/mes_module.c \
+	-f ../mes-m2/mes_macro.c \
 	-f ../mes-m2/mes_posix.c \
-	-f ../mes-m2/mes_printer.c \
-	-f ../mes-m2/mes_reader.c \
-	-f ../mes-m2/mes_strings.c \
-	-f ../mes-m2/mes_struct.c \
-	-f ../mes-m2/mes_vector.c -o mes.M1
+	-f ../mes-m2/functions/numerate_number.c \
+	-f ../mes-m2/functions/match.c \
+	-f ../mes-m2/functions/file_print.c \
+	-o mes.M1
 
 ../bin/blood-elf -f mes.M1 -o mes-footer.M1
 
