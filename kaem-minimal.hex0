@@ -395,7 +395,7 @@
 	CD80                            # INT_80                            ; Call it a good day
 
 # :default_file ; (0x804829B)
-	6B61656D2E72756E00              # "kaem.run"
+	6B61656D2E78383600              # "kaem.x86"
 # :prefix ; (0x80482A4)
 	202B3E2000                      # " +> "
 # :hard ; (0x80482A9)
