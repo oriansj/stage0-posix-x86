@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Mes.  If not, see <http://www.gnu.org/licenses/>.
 
+# This folder contains the build artifacts for x86 bootstrapping to enable complete auditing.
+
 set -eux
 # cleaning up what git clean -xdf misses
 
