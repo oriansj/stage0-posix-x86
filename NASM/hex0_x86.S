@@ -44,7 +44,7 @@ _start:
 	pop ebp                     ; mov ebp, -1
 
 	; temp storage for the sum
-	xor edi, edi		    ; edi = 0
+	xor edi, edi                ; edi = 0
 
 loop:
 	; Read a byte
@@ -58,7 +58,7 @@ loop:
 	jl loop
 
 	; deal with toggle
-	test ebp, ebp                ; jump if ebp >= 0
+	test ebp, ebp               ; jump if ebp >= 0
 	jge print
 
 	; process first byte of pair
@@ -71,7 +71,6 @@ print:
 	; update the sum and store in output
 	shl edi, 4
 	add eax, edi
-	push eax
 
 	; flip the toggle
 	push -1
@@ -154,7 +153,7 @@ Done:
 	pop eax                     ; put the exit syscall number in eax
 	int 0x80                    ; Call it a good day
 
-# Writes byte stored in al
+; Writes byte stored in al
 write_byte:
 	; Print our Hex
 	push 1                      ; prepare to set edx to 1
