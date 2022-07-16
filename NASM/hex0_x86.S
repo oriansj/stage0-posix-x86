@@ -24,24 +24,27 @@ _start:
 	pop eax                     ; Get the number of arguments
 	pop ebx                     ; Get the program name
 	pop ebx                     ; Get the actual input name
-	mov ecx, 0                  ; prepare read_only
-	mov edx, 0                  ; Extra sure
-	mov eax, 5                  ; the syscall number for open()
+	xor ecx, ecx                ; prepare read_only, ecx = 0
+	xor edx, edx                ; Extra sure, edx = 0
+	push 5                      ; prepare to set eax to 5
+	pop eax                     ; the syscall number for open()
 	int 0x80                    ; Now open that damn file
 	mov [fin], eax              ; Preserve the file pointer we were given
 
 	pop ebx                     ; Get the actual output name
 	mov ecx, 577                ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
 	mov edx, 448                ; Prepare file as RWX for owner only (700 in octal)
-	mov eax, 5                  ; the syscall number for open()
+	push 5                      ; prepare to set eax to 5
+	pop eax                     ; the syscall number for open()
 	int 0x80                    ; Now open that damn file
 	mov [fout], eax             ; Preserve the file pointer we were given
 
 	; Our flag for byte processing
-	mov ebp, -1
+	push -1
+	pop ebp                     ; mov ebp, -1
 
 	; temp storage for the sum
-	mov edi, 0
+	xor edi, edi		    ; edi = 0
 
 loop:
 	; Read a byte
@@ -51,16 +54,16 @@ loop:
 	call hex
 
 	; Deal with -1 values
-	cmp eax, 0
+	test eax, eax
 	jl loop
 
 	; deal with toggle
-	cmp ebp, 0
+	test ebp, ebp                ; jump if ebp >= 0
 	jge print
 
 	; process first byte of pair
 	mov edi, eax
-	mov ebp, 0
+	xor ebp, ebp                ; ebp = 0
 	jmp loop
 
 ; process second byte of pair
@@ -68,10 +71,11 @@ print:
 	; update the sum and store in output
 	shl edi, 4
 	add eax, edi
-	mov [output], al
+	push eax
 
 	; flip the toggle
-	mov ebp, -1
+	push -1
+	pop ebp                     ; mov ebp, -1
 
 	call write_byte
 
@@ -122,7 +126,8 @@ purge_comment:
 	jne purge_comment
 
 	; Otherwise return -1
-	mov eax, -1
+	push -1
+	pop eax
 	ret
 
 ascii_num:
@@ -138,38 +143,47 @@ ascii_high:
 	ret
 
 ascii_other:
-	mov eax, -1
+	push -1
+	pop eax                     ; return -1
 	ret
 
 Done:
 	; program completed Successfully
-	mov ebx, 0                  ; All is well
-	mov eax, 1                  ; put the exit syscall number in eax
+	xor ebx, ebx                ; All is well, ebx = 0
+	push 1
+	pop eax                     ; put the exit syscall number in eax
 	int 0x80                    ; Call it a good day
 
+# Writes byte stored in al
 write_byte:
 	; Print our Hex
-	mov edx, 1                  ; set the size of chars we want
-	mov ecx, output             ; What we are writing
+	push 1                      ; prepare to set edx to 1
+	pop edx                     ; set the size of chars we want
+	push eax                    ; Move output to stack
+	mov ecx, esp                ; What to write
 	mov ebx, [fout]             ; Where are we writing to
-	mov eax, 4                  ; the syscall number for write
+	push 4                      ; prepare to set eax to 4
+	pop eax                     ; the syscall number for write
 	int 0x80                    ; call the Kernel
+	pop ebx                     ; deallocate stack
 	ret
 
 Read_byte:
 	; Attempt to read 1 byte from STDIN
-	mov edx,  1                 ; set the size of chars we want
-	mov ecx, input              ; Where to put it
+	push 1                      ; prepare to set edx to 1
+	pop edx                     ; set the size of chars we want
+	push ebx                    ; allocate stack
+	mov ecx, esp                ; Where to put it
 	mov ebx, [fin]              ; Where are we reading from
-	mov eax, 3                  ; the syscall number for read
+	push 3                      ; prepare to set eax to 3
+	pop eax                     ; the syscall number for read
 	int 0x80                    ; call the Kernel
 
 	test eax, eax               ; check what we got
 	je Done                     ; Got EOF call it done
 
 	; load byte
-	mov al, [input]             ; load char
-	movzx eax, al               ; We have to zero extend it to use it
+	pop eax                     ; load char
 	ret
 
 
@@ -178,14 +192,4 @@ ELF_end:
 fin:
 	dq 0
 fout:
-	dq 0
-
-; Where we are putting our output
-output:
-	; Reserve 4bytes of Zeros
-	dq 0
-
-; Where we get our input
-input:
-	; Reserve 4bytes of Zeros
 	dq 0
