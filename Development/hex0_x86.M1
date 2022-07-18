@@ -1,4 +1,5 @@
 ;; Copyright (C) 2017 Jeremiah Orians
+;; Copyright (C) 2022 Andrius Štikonas
 ;; This file is part of stage0.
 ;;
 ;; stage0 is free software: you can redistribute it and/or modify
@@ -16,18 +17,22 @@
 
 DEFINE ADD_EDI_to_EAX 01F8
 DEFINE CALL E8
-DEFINE CMPI8_EAX 83F8
+DEFINE CMPI8_AL 3C
 DEFINE COPY_EAX_to_EDI 89C7
+DEFINE COPY_EAX_to_EDX 89C2
+DEFINE COPY_EAX_to_ESI 89C6
+DEFINE COPY_EDX_to_EBX 89D3
 DEFINE COPY_ESP_to_ECX 89E1
+DEFINE COPY_ESI_to_EBX 89F3
+DEFINE DEC_EBP 4D
 DEFINE INT_80 CD80
 DEFINE JE8 74
 DEFINE JGE8 7D
 DEFINE JL8 7C
 DEFINE JMP8 EB
 DEFINE JNE8 75
-DEFINE LOAD32_Absolute32_ebx 8B1D
-DEFINE LOADI32_ECX B9
-DEFINE LOADI32_EDX BA
+DEFINE LOADI16_CX 66B9
+DEFINE LOADI16_DX 66BA
 DEFINE NULL 00000000
 DEFINE POP_EAX 58
 DEFINE POP_EBX 5B
@@ -35,16 +40,11 @@ DEFINE POP_EBP 5D
 DEFINE POP_EDX 5A
 DEFINE PUSH_EAX 50
 DEFINE PUSH_EBX 53
-DEFINE PUSH_1 6A01
-DEFINE PUSH_3 6A03
-DEFINE PUSH_4 6A04
-DEFINE PUSH_5 6A05
-DEFINE PUSH_-1 6AFF
+DEFINE PUSH_EDX 52
+DEFINE PUSH 6A
 DEFINE RET C3
 DEFINE SHLI8_EDI C1E7
-DEFINE STORE32_Absolute32_eax A3
-DEFINE STORE8_Absolute32_al A2
-DEFINE SUBI8_EAX 83E8
+DEFINE SUBI8_AL 2C
 DEFINE TEST 85C0
 DEFINE TEST_EBP_EBP 85ED
 DEFINE XOR_EBP_EBP 31ED
@@ -62,21 +62,21 @@ DEFINE XOR_EDX_EDX 31D2
 	POP_EBX                     ; Get the actual input name
 	XOR_ECX_ECX                 ; prepare read_only, ecx = 0
 	XOR_EDX_EDX                 ; Extra sure, edx = 0
-	PUSH_5                      ; prepare to set eax to 5
+	PUSH !5                     ; prepare to set eax to 5
 	POP_EAX                     ; the syscall number for open()
 	INT_80                      ; Now open that damn file
-	STORE32_Absolute32_eax &fin ; Preserve the file pointer we were given
+	COPY_EAX_to_ESI             ; Preserve the file pointer we were given
 
 	POP_EBX                     ; Get the actual output name
-	LOADI32_ECX %577            ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-	LOADI32_EDX %448            ; Prepare file as RWX for owner only (700 in octal)
-	PUSH_5                      ; prepare to set eax to 5
+	LOADI16_CX @577             ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+	LOADI16_DX @448             ; Prepare file as RWX for owner only (700 in octal)
+	PUSH !5                     ; prepare to set eax to 5
 	POP_EAX                     ; the syscall number for open()
 	INT_80                      ; Now open that damn file
-	STORE32_Absolute32_eax &fout ; Preserve the file pointer we were given
+	COPY_EAX_to_EDX             ; Preserve the file pointer we were given
 
 	; Our flag for byte processing
-	PUSH_-1
+	PUSH !-1
 	POP_EBP                     ; ebp = -1
 
 	; temp storage for the sum
@@ -109,8 +109,7 @@ DEFINE XOR_EDX_EDX 31D2
 	ADD_EDI_to_EAX
 
 	; flip the toggle
-	PUSH_-1
-	POP_EBP                     ; ebp = -1
+	DEC_EBP                     ; ebp = -1
 
 	CALL %write_byte
 
@@ -118,35 +117,35 @@ DEFINE XOR_EDX_EDX 31D2
 
 :hex
 	; Purge Comment Lines (#)
-	CMPI8_EAX !35
+	CMPI8_AL !35
 	JE8 !purge_comment
 
 	; Purge Comment Lines (;)
-	CMPI8_EAX !59
+	CMPI8_AL !59
 	JE8 !purge_comment
 
 	; deal all ascii less than 0
-	CMPI8_EAX !48
+	CMPI8_AL !48
 	JL8 !ascii_other
 
 	; deal with 0-9
-	CMPI8_EAX !58
+	CMPI8_AL !58
 	JL8 !ascii_num
 
 	; deal with all ascii less than A
-	CMPI8_EAX !65
+	CMPI8_AL !65
 	JL8 !ascii_other
 
 	; deal with A-F
-	CMPI8_EAX !71
+	CMPI8_AL !71
 	JL8 !ascii_high
 
 	;deal with all ascii less than a
-	CMPI8_EAX !97
+	CMPI8_AL !97
 	JL8 !ascii_other
 
 	;deal with a-f
-	CMPI8_EAX !103
+	CMPI8_AL !103
 	JL8 !ascii_low
 
 	; The rest that remains needs to be ignored
@@ -157,60 +156,52 @@ DEFINE XOR_EDX_EDX 31D2
 	CALL %Read_byte
 
 	; Loop if not LF
-	CMPI8_EAX !10
+	CMPI8_AL !10
 	JNE8 !purge_comment
 
 	; Otherwise return -1
-	PUSH_-1
-	POP_EAX
-	RET
-
-:ascii_num
-	SUBI8_EAX !48
-	RET
-
-:ascii_low
-	SUBI8_EAX !87
-	RET
-
-:ascii_high
-	SUBI8_EAX !55
-	RET
 
 :ascii_other
-	PUSH_-1
+	PUSH !-1
 	POP_EAX                     ; return -1
 	RET
 
-:Done
-	; program completed Successfully
-	XOR_EBX_EBX                 ; All is well, ebx = 0
-	PUSH_1
-	POP_EAX                     ; put the exit syscall number in eax
-	INT_80                      ; Call it a good day
+:ascii_num
+	SUBI8_AL !48
+	RET
+
+:ascii_low
+	SUBI8_AL !32                ; convert to uppercase
+
+:ascii_high
+	SUBI8_AL !55
+	RET
 
 ; Writes byte stored in al
 :write_byte
 	; Print our Hex
-	PUSH_1                      ; prepare to set edx to 1
+	COPY_EDX_to_EBX             ; Where are we writing to
+	PUSH_EDX                    ; protect fout
+	PUSH !1                     ; prepare to set edx to 1
 	POP_EDX                     ; set the size of chars we want
 	PUSH_EAX                    ; Move output to stack
-	COPY_ESP_to_ECX             ; What to write
-	LOAD32_Absolute32_ebx &fout ; Where are we writing to
-	PUSH_4                      ; prepare to set eax to 4
+	COPY_ESP_to_ECX             ; What we are writing
+	PUSH !4                     ; prepare to set eax to 4
 	POP_EAX                     ; the syscall number for write
 	INT_80                      ; call the Kernel
 	POP_EBX                     ; deallocate stack
+	POP_EDX                     ; restore fout
 	RET
 
 :Read_byte
 	; Attempt to read 1 byte from Input file
-	PUSH_1                      ; prepare to set edx to 1
+	PUSH_EDX                    ; protect fout
+	PUSH !1                     ; prepare to set edx to 1
 	POP_EDX                     ; set the size of chars we want
 	PUSH_EBX                    ; allocate stack
 	COPY_ESP_to_ECX             ; Where to put it
-	LOAD32_Absolute32_ebx &fin  ; Where are we reading from
-	PUSH_3                      ; prepare to set eax to 3
+	COPY_ESI_to_EBX             ; Where are we reading from
+	PUSH !3                     ; prepare to set eax to 3
 	POP_EAX                     ; the syscall number for read
 	INT_80                      ; call the Kernel
 
@@ -219,11 +210,14 @@ DEFINE XOR_EDX_EDX 31D2
 
 	; load byte
 	POP_EAX                     ; load char
+	POP_EDX                     ; restore fout
 	RET
 
-:fin
-	NULL
-:fout
-	NULL
+:Done
+	; program completed Successfully
+	XOR_EBX_EBX                 ; All is well, ebx = 0
+	PUSH !1
+	POP_EAX                     ; put the exit syscall number in eax
+	INT_80                      ; Call it a good day
 
 :ELF_end
