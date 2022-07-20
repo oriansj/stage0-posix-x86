@@ -29,44 +29,50 @@ _start:
 	pop eax                     ; Get the number of arguments
 	pop ebx                     ; Get the program name
 	pop ebx                     ; Get the actual output name
-	mov ecx, 577                ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-	mov edx, 384                ; Prepare file as RW for owner only (600 in octal)
-	mov eax, 5                  ; the syscall number for open()
+	mov cx, 577                 ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+	mov dx, 384                 ; Prepare file as RW for owner only (600 in octal)
+	push 5                      ; prepare to set eax to 5
+	pop eax                     ; the syscall number for open()
 	int 0x80                    ; Now open that file
 	mov ebp, eax                ; Preserve the file pointer we were given
 
-	mov eax, 45                 ; the Syscall # for SYS_BRK
-	mov ebx, 0                  ; Get current brk
+	push 45
+	pop eax                     ; the Syscall # for SYS_BRK
+	xor ebx, ebx                ; Get current brk
 	int 0x80                    ; Let the kernel do the work
 	mov edi, eax                ; Set our malloc pointer
 
-	mov eax, 45                 ; the Syscall # for SYS_BRK
+	push 45
+	pop eax                     ; the Syscall # for SYS_BRK
 	mov ebx, edi                ; Using current pointer
 	add ebx, 0x100000           ; Allocate 1MB
 	int 0x80                    ; Let the kernel do the work
 
 core:
 	pop ebx                     ; Get the actual input name
-	cmp ebx, 0                  ; Check for null string
+	test ebx, ebx               ; Check for null string
 	je done                     ; Hit null be done
 
-	mov ecx, 0                  ; prepare read_only
-	mov edx, 0                  ; prevent any interactions
-	mov eax, 5                  ; the syscall number for open()
+	xor ecx, ecx                ; prepare read_only
+	xor edx, edx                ; prevent any interactions
+	push 5
+	pop eax                     ; the syscall number for open()
 	int 0x80                    ; Now open that damn file
 	mov esi, eax                ; Protect INPUT
 keep:
 	mov edx, 0x100000           ; set the size of chars we want
 	mov ecx, edi                ; Where to put it
 	mov ebx, esi                ; Where are we reading from
-	mov eax, 3                  ; the syscall number for read
+	push 3
+	pop eax                     ; the syscall number for read
 	int 0x80                    ; call the Kernel
 	push eax                    ; Protect the number of bytes read
 
 	mov edx, eax                ; Number of bytes to write
 	mov ecx, edi                ; What we are writing
 	mov ebx, ebp                ; Write to target file
-	mov eax, 4                  ; the syscall number for write
+	push 4
+	pop eax                     ; the syscall number for write
 	int 0x80                    ; call the Kernel
 
 	pop eax                     ; Get bytes read
@@ -76,6 +82,7 @@ keep:
 
 done:
 	; program completed Successfully
-	mov ebx, 0                  ; All is well
-	mov eax, 1                  ; put the exit syscall number in eax
+	xor ebx, ebx                ; All is well
+	push 1
+	pop eax                     ; put the exit syscall number in eax
 	int 0x80                    ; Call it a good day

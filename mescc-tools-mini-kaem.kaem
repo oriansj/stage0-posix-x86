@@ -34,13 +34,6 @@
 # in mescc-tools/x86_bootstrap to allow you various ways to verify correctness
 
 #################################
-# Phase-1b Build catm from hex0 #
-#################################
-./x86/artifact/hex0 ./x86/catm_x86.hex0 ./x86/artifact/catm
-# catm removes the need for cat or shell support for redirection by providing
-# equivalent functionality via catm output_file input1 input2 ... inputN
-
-#################################
 # Phase-2 Build hex2 from hex1  #
 #################################
 ./x86/artifact/hex1 ./x86/hex2_x86.hex1 ./x86/artifact/hex2-0
@@ -48,6 +41,13 @@
 # to function as an effective linker for later stages of the bootstrap
 # This is a minimal version which will be used to bootstrap a much more advanced
 # version in a later stage.
+
+#################################
+# Phase-2b Build catm from hex2 #
+#################################
+./x86/artifact/hex2-0 ./x86/catm_x86.hex2 ./x86/artifact/catm
+# catm removes the need for cat or shell support for redirection by providing
+# equivalent functionality via catm output_file input1 input2 ... inputN
 
 ###############################
 # Phase-3 Build M0 from hex2  #
