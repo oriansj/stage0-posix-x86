@@ -27,7 +27,7 @@ _start:
 	cmp ebx, 0                  ; Check for missing output
 	jne _start_out              ; Have real input
 	push eax                    ; Need to adjust stack
-	mov ebx, default_file       ; Use "kaem.run"
+	mov ebx, default_file       ; Use "kaem.x86"
 
 _start_out:
 	mov ecx, 0                  ; prepare read_only

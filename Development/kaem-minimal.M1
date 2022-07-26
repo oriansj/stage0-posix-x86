@@ -75,7 +75,7 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	CMPI8_EBX !0                      ; Check for missing output
 	JNE8 !_start_out                  ; Have real input
 	PUSH_EAX                          ; Need to adjust stack
-	LOADI32_EBX &default_file         ; Use "kaem.run"
+	LOADI32_EBX &default_file         ; Use "kaem.aarch64"
 
 :_start_out
 	LOADI32_ECX %0                    ; prepare read_only
