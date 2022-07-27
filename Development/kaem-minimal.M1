@@ -290,7 +290,7 @@ DEFINE XOR_EDX_EDX 31D2
 
 
 ;; collect_string function
-;; Recieves target[index] in ECX
+;; Receives target[index] in ECX
 ;; Modifies EAX
 ;; Uses EAX as C
 :collect_string

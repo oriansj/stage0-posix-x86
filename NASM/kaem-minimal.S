@@ -237,7 +237,7 @@ collect_token_good:
 
 
 ;; collect_string function
-;; Recieves target[index] in ECX
+;; Receives target[index] in ECX
 ;; Modifies EAX
 ;; Uses EAX as C
 collect_string:
