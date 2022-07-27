@@ -1,4 +1,5 @@
 ;; Copyright (C) 2020 Jeremiah Orians
+;; Copyright (C) 2022 Andrius Štikonas
 ;; This file is part of stage0.
 ;;
 ;; stage0 is free software: you can redistribute it and/or modify
@@ -15,15 +16,14 @@
 ;; along with stage0.  If not, see <http://www.gnu.org/licenses/>.
 
 # Build with:
-# M1 --architecture x86 --LittleEndian -f x86/Development/kaem-minimal.M1 -o bin/kaem-minimal.hex2
-# hex2 --architecture x86 --LittleEndian --BaseAddress 0x8048000 -f x86/ELF-i386.hex2 -f bin/kaem-minimal.hex2 -o bin/kaem-minimal --exec_enable
+# M1 --architecture x86 --little-endian -f x86/Development/kaem-minimal.M1 -o bin/kaem-minimal.hex2
+# hex2 --architecture x86 --little-endian --base-address 0x8048000 -f x86/ELF-i386.hex2 -f bin/kaem-minimal.hex2 -o bin/kaem-minimal
 
 DEFINE ADDI8_EBX 83C3
 DEFINE ADDI8_ECX 83C1
 DEFINE ADD_eax_into_ebx 01C3
 DEFINE CALL32 E8
-DEFINE CMPI8_EAX 83F8
-DEFINE CMPI8_EBX 83FB
+DEFINE CMPI8_AL 3C
 DEFINE CMP_EBX_ECX 39D9
 DEFINE CMP_ECX_EBX 39CB
 DEFINE COPY_EAX_to_EBX 89C3
@@ -31,12 +31,13 @@ DEFINE COPY_EAX_to_ECX 89C1
 DEFINE COPY_EBP_to_EDX 89EA
 DEFINE COPY_EBX_to_EAX 89D8
 DEFINE COPY_EBX_to_ECX 89D9
+DEFINE COPY_EBX_to_EDX 89DA
 DEFINE COPY_ESP_to_EBP 89E5
 DEFINE INT_80 CD80
 DEFINE JE32 0F84
 DEFINE JE8 74
 DEFINE JL8 7C
-DEFINE JLE32 0F8E
+DEFINE JLE8 7E
 DEFINE JMP8 EB
 DEFINE JNE8 75
 DEFINE LEA32_ECX_from_esp 8D0C24
@@ -48,8 +49,6 @@ DEFINE LOAD8_al_from_EBX 8A03
 DEFINE LOADI32_EAX B8
 DEFINE LOADI32_EBX BB
 DEFINE LOADI32_ECX B9
-DEFINE LOADI32_EDX BA
-DEFINE MOVZX_al 0FB6C0
 DEFINE NULL 00000000
 DEFINE POP_EAX 58
 DEFINE POP_EBX 5B
@@ -59,11 +58,18 @@ DEFINE PUSH_EAX 50
 DEFINE PUSH_EBX 53
 DEFINE PUSH_ECX 51
 DEFINE PUSH_EDX 52
+DEFINE PUSH 6A
 DEFINE RETURN C3
 DEFINE STORE32_Absolute32_eax A3
 DEFINE STORE32_Absolute32_ebx 891D
 DEFINE STORE32_EAX_into_ECX 8901
 DEFINE STORE8_al_into_Address_ECX 8801
+DEFINE TEST 85C0
+DEFINE TEST_EBX_EBX 85DB
+DEFINE XOR_EAX_EAX 31C0
+DEFINE XOR_EBX_EBX 31DB
+DEFINE XOR_ECX_ECX 31C9
+DEFINE XOR_EDX_EDX 31D2
 
 ; Where the ELF Header is going to hit
 ; Simply jump to _start
@@ -72,25 +78,27 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	POP_EAX                           ; Get the number of arguments
 	POP_EBX                           ; Get the program name
 	POP_EBX                           ; Get the actual input name
-	CMPI8_EBX !0                      ; Check for missing output
+	TEST_EBX_EBX                      ; Check for missing output
 	JNE8 !_start_out                  ; Have real input
 	PUSH_EAX                          ; Need to adjust stack
 	LOADI32_EBX &default_file         ; Use "kaem.x86"
 
 :_start_out
-	LOADI32_ECX %0                    ; prepare read_only
-	LOADI32_EAX %5                    ; the syscall number for open()
+	XOR_ECX_ECX                       ; prepare read_only
+	PUSH !5
+	POP_EAX                           ; the syscall number for open()
 	INT_80                            ; Now open that damn file
 
-	CMPI8_EAX !0                      ; IF NULL We couldn't open the file
-	JLE32 %Exit_Failure               ; Abort hard
+	TEST                              ; IF NULL We couldn't open the file
+	JLE8 !Exit_Failure                ; Abort hard
 	STORE32_Absolute32_eax &script    ; Set input pointer
 
 	POP_EAX                           ; Get start of envp
 	COPY_ESP_to_EBP                   ; Protect envp
 
-	LOADI32_EAX %45                   ; the Syscall # for SYS_BRK
-	LOADI32_EBX %0                    ; Get current brk
+	PUSH !45
+	POP_EAX                           ; the Syscall # for SYS_BRK
+	XOR_EBX_EBX                       ; Get current brk
 	INT_80                            ; Let the kernel do the work
 	STORE32_Absolute32_eax &MALLOC    ; Set our malloc pointer
 
@@ -102,14 +110,14 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	COPY_EAX_to_EBX                   ; set tokens
 
 	COPY_EBX_to_ECX                   ; I = 0
-	LOADI32_EAX %0                    ; Using 0
+	XOR_EAX_EAX                       ; Using 0
 	STORE32_Absolute32_eax &status    ; status = 0
 	STORE32_Absolute32_eax &command_done ; command_done = 0
 
 	;; Using EAX for result and EBX for tokens[i]
 :collect_command
 	CALL32 %collect_token             ; Get another token
-	CMPI8_EAX !0                      ; if NULL == result
+	TEST                              ; if NULL == result
 	JE8 !collect_command_comment      ; It is a comment, don't store
 
 	STORE32_EAX_into_ECX              ; tokens[i] = result
@@ -117,7 +125,7 @@ DEFINE STORE8_al_into_Address_ECX 8801
 
 :collect_command_comment
 	LOAD32_Absolute32_eax &command_done ; Using command_done
-	CMPI8_EAX !0                      ; IF 0 == command_done
+	TEST                              ; IF 0 == command_done
 	JE8 !collect_command              ; keep looping
 
 	;; Deal with line comments
@@ -126,50 +134,60 @@ DEFINE STORE8_al_into_Address_ECX 8801
 
 	CALL32 %print_command             ; print the command
 	LOAD32_EAX_from_EBX               ; program = tokens[0]
-	CMPI8_EAX !0                      ; IF NULL == program
+	TEST                              ; IF NULL == program
 	JE8 !Exit_Failure                 ; Some shit went down, abort
 
 	PUSH_EBX                          ; Protect Tokens
-	LOADI32_EAX %2                    ; FORKing
+	PUSH !2
+	POP_EAX                           ; FORKing
 	INT_80                            ; int f = FORK()
 	POP_EBX                           ; Restore Tokens
 
-	CMPI8_EAX !0                      ; Check fork
+	TEST                              ; Check fork
 	JL8 !Exit_Failure                 ; IF f == -1 abort hard
 	JNE8 !collect_command_parent      ; IF f == 0 it is child
 
 	;; Deal with child case
-	LOADI32_EAX %11                   ; EXECVE
+	PUSH !11
+	POP_EAX                           ; EXECVE
 	COPY_EBP_to_EDX                   ; third arg = envp
 	COPY_EBX_to_ECX                   ; second arg = tokens
 	LOAD32_EBX_from_EBX               ; program = tokens[0]
 	INT_80                            ; execve(program, tokens, envp);
-	JMP8 !Exit_Failure                ; return error
-
-:collect_command_parent
-	COPY_EAX_to_EBX                   ; first arg = f
-	LOADI32_ECX &status               ; second arg = &status
-	LOADI32_EDX %0                    ; third arg = NULL
-	LOADI32_EAX %7                    ; WAITPID
-	INT_80                            ; waitpid(f, &status, 0);
-
-	LOAD32_Absolute32_eax &status     ; Using status
-	CMPI8_EAX !0                      ; IF 0 == status
-	JE32 %main_loop                   ; Loop forever
-
-	;; Deal with very unhappy case
-	LOADI32_EAX &hard                 ; Using "Subprocess error\nABORTING HARD\n"
-	CALL32 %File_Print                ; Print it
+	                                  ; return error
 
 ;; Exit_Failure function
 ;; Receives nothing
 ;; And aborts hard
 ;; Does NOT return
 :Exit_Failure
-	LOADI32_EBX %1                    ; All is wrong
-	LOADI32_EAX %1                    ; put the exit syscall number in eax
+	PUSH !1
+	POP_EBX                           ; All is wrong
+	COPY_EBX_to_EAX                   ; put the exit syscall number in eax
 	INT_80                            ; Call it a bad day
 
+:collect_command_parent
+	COPY_EAX_to_EBX                   ; first arg = f
+	LOADI32_ECX &status               ; second arg = &status
+	XOR_EDX_EDX                       ; third arg = NULL
+	PUSH !7
+	POP_EAX                           ; WAITPID
+	INT_80                            ; waitpid(f, &status, 0);
+
+	LOAD32_Absolute32_eax &status     ; Using status
+	TEST                              ; IF 0 == status
+	JE8 !main_loop                    ; Loop forever
+
+	;; Deal with very unhappy case
+	LOADI32_EAX &hard                 ; Using "Subprocess error\nABORTING HARD\n"
+	CALL32 %File_Print                ; Print it
+
+:Done
+	; program completed Successfully
+	XOR_EBX_EBX                       ; All is well
+	PUSH !1
+	POP_EAX                           ; put the exit syscall number in eax
+	INT_80                            ; Call it a good day
 
 ;; print_command function
 ;; Receives tokens[j] in EBX and tokens[i] in ECX
@@ -182,12 +200,14 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	LOAD32_EAX_from_EBX               ; using tokens[j]
 	CALL32 %File_Print                ; print it
 	ADDI8_EBX !4                      ; j = j + 1
-	LOADI32_EAX %32                   ; using ' '
+	PUSH !32
+	POP_EAX                           ; using ' '
 	CALL32 %fputc                     ; print it
 	CMP_ECX_EBX                       ; IF j < i
 	JNE8 !print_command_loop          ; otherwise keep looping
 
-	LOADI32_EAX %10                   ; using '\n'
+	PUSH !10
+	POP_EAX                           ; using '\n'
 	CALL32 %fputc                     ; print it
 	POP_EBX                           ; Restore EBX
 	RETURN
@@ -207,25 +227,26 @@ DEFINE STORE8_al_into_Address_ECX 8801
 
 :collect_token_loop
 	CALL32 %fgetc                     ; c = fgetc(input);
-	CMPI8_EAX !-4                     ; if C == EOF
-	JE32 %Done                        ; We are done
+	CMPI8_AL !-4                      ; if C == EOF
+	JE8 !Done                         ; We are done
 
-	CMPI8_EAX !32                     ; IF C == ' '
+	CMPI8_AL !32                      ; IF C == ' '
 	JE8 !collect_token_done           ; Space terminates token
 
-	CMPI8_EAX !9                      ; IF C == '\t'
+	CMPI8_AL !9                       ; IF C == '\t'
 	JE8 !collect_token_done           ; tab terminates token
 
-	CMPI8_EAX !10                     ; IF C == '\n'
+	CMPI8_AL !10                      ; IF C == '\n'
 	JNE8 !collect_token_string        ; otherwise check next
 
 	;; It is a newline
-	LOADI32_EAX %1                    ; Using 1
+	PUSH !1
+	POP_EAX                           ; Using 1
 	STORE32_Absolute32_eax &command_done ; Set command_done = TRUE
 	JMP8 !collect_token_done          ; Be done
 
 :collect_token_string
-	CMPI8_EAX !34                     ; IF C == '\"'
+	CMPI8_AL !34                      ; IF C == '\"'
 	JNE8 !collect_token_comment       ; otherwise check next
 
 	;; It is a RAW STRING
@@ -233,17 +254,18 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	JMP8 !collect_token_done          ; Be done
 
 :collect_token_comment
-	CMPI8_EAX !35                     ; IF C == '#'
+	CMPI8_AL !35                      ; IF C == '#'
 	JNE8 !collect_token_escape        ; otherwise check next
 
 	;; It is a line comment
 	CALL32 %collect_comment           ; Read it all
-	LOADI32_EAX %1                    ; Using 1
+	PUSH !1
+	POP_EAX                           ; Using 1
 	STORE32_Absolute32_eax &command_done ; Set command_done = TRUE
 	JMP8 !collect_token_done          ; Be done
 
 :collect_token_escape
-	CMPI8_EAX !92                     ; IF C == '\\'
+	CMPI8_AL !92                      ; IF C == '\\'
 	JNE8 !collect_token_other         ; otherwise just store it
 
 	;; It is an escape char
@@ -258,7 +280,7 @@ DEFINE STORE8_al_into_Address_ECX 8801
 :collect_token_done
 	CMP_ECX_EBX                       ; IF i == 0
 	JNE8 !collect_token_good          ; otherwise return the token
-	LOADI32_EBX %0                    ; token = NULL
+	XOR_EBX_EBX                       ; token = NULL
 
 :collect_token_good
 	COPY_EBX_to_EAX                   ; Return token
@@ -273,10 +295,10 @@ DEFINE STORE8_al_into_Address_ECX 8801
 ;; Uses EAX as C
 :collect_string
 	CALL32 %fgetc                     ; C = fgetc(input)
-	CMPI8_EAX !-4                     ; if C == EOF
+	CMPI8_AL !-4                      ; if C == EOF
 	JE32 %Exit_Failure                ; Something went horriably wrong
 
-	CMPI8_EAX !34                     ; IF C == '\"'
+	CMPI8_AL !34                      ; IF C == '\"'
 	JE8 !collect_string_done          ; be done
 
 	;; deal with inside of string
@@ -295,10 +317,10 @@ DEFINE STORE8_al_into_Address_ECX 8801
 ;; Just throws away everything it reads
 :collect_comment
 	CALL32 %fgetc                     ; C = fgetc(input)
-	CMPI8_EAX !-4                     ; IF C == EOF
+	CMPI8_AL !-4                      ; IF C == EOF
 	JE32 %Exit_Failure                ; abort hard
 
-	CMPI8_EAX !10                     ; IF C == '\n'
+	CMPI8_AL !10                      ; IF C == '\n'
 	JNE8 !collect_comment             ; otherwise keep looping
 	RETURN
 
@@ -312,7 +334,8 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	PUSH_EDX                          ; Protect EDX
 	LOAD32_Absolute32_ebx &MALLOC     ; Using the current pointer
 	ADD_eax_into_ebx                  ; Request the number of desired bytes
-	LOADI32_EAX %45                   ; the Syscall # for SYS_BRK
+	PUSH !45
+	POP_EAX                           ; the Syscall # for SYS_BRK
 	INT_80                            ; call the Kernel
 	LOAD32_Absolute32_eax &MALLOC     ; Return pointer
 	STORE32_Absolute32_ebx &MALLOC    ; Update pointer
@@ -324,22 +347,23 @@ DEFINE STORE8_al_into_Address_ECX 8801
 
 ;; fgetc function
 ;; Loads FILE* from [script]
-;; Returns -4 (EOF) or char in EAX
+;; Returns -4 (EOF) or char in AL
 :fgetc
 	PUSH_EBX                          ; Protect EBX
 	PUSH_ECX                          ; Protect ECX
 	PUSH_EDX                          ; Protect EDX
-	LOADI32_EAX %-4                   ; Put EOF in eax
+	PUSH !-4
+	POP_EAX                           ; Put EOF in eax
 	PUSH_EAX                          ; Assume bad (If nothing read, value will remain EOF)
 	LEA32_ECX_from_esp                ; Get stack address
 	LOAD32_Absolute32_ebx &script     ; Where are we reading from
-	LOADI32_EAX %3                    ; the syscall number for read
-	LOADI32_EDX %1                    ; set the size of chars we want
+	PUSH !3
+	POP_EAX                           ; the syscall number for read
+	PUSH !1
+	POP_EDX                           ; set the size of chars we want
 	INT_80                            ; call the Kernel
 	POP_EAX                           ; Get either char or EOF
-	CMPI8_EAX !-4                     ; Check for EOF
-	JE8 !fgetc_done                   ; Return as is
-	MOVZX_al                          ; Make it useful
+	CMPI8_AL !-4                      ; Check for EOF
 :fgetc_done
 	POP_EDX                           ; Restore EDX
 	POP_ECX                           ; Restore ECX
@@ -354,12 +378,12 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	PUSH_EBX                          ; Protect EBX
 	PUSH_ECX                          ; Protect ECX
 	COPY_EAX_to_EBX                   ; Protect S
-	CMPI8_EAX !0                      ; Protect against nulls
+	TEST                              ; Protect against nulls
 	JE8 !File_Print_Done              ; Simply don't try to print them
 :File_Print_Loop
+	XOR_EAX_EAX                       ; Zero eax
 	LOAD8_al_from_EBX                 ; Read byte
-	MOVZX_al                          ; zero extend
-	CMPI8_EAX !0                      ; Check for NULL
+	TEST                              ; Check for NULL
 	JE8 !File_Print_Done              ; Stop at NULL
 
 	CALL32 %fputc                     ; write it
@@ -381,9 +405,11 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	PUSH_EDX                          ; Protect EDX
 	PUSH_EAX                          ; We are writing eax
 	LEA32_ECX_from_esp                ; Get stack address
-	LOADI32_EBX %1                    ; Write to target file
-	LOADI32_EAX %4                    ; the syscall number for write
-	LOADI32_EDX %1                    ; set the size of chars we want
+	PUSH !1
+	POP_EBX                           ; Write to target file
+	PUSH !4
+	POP_EAX                           ; the syscall number for write
+	COPY_EBX_to_EDX                   ; set the size of chars we want
 	INT_80                            ; call the Kernel
 	POP_EAX                           ; Restore stack
 	POP_EDX                           ; Restore EDX
@@ -392,11 +418,6 @@ DEFINE STORE8_al_into_Address_ECX 8801
 	RETURN
 
 
-:Done
-	; program completed Successfully
-	LOADI32_EBX %0                    ; All is well
-	LOADI32_EAX %1                    ; put the exit syscall number in eax
-	INT_80                            ; Call it a good day
 
 :default_file "kaem.x86"
 :prefix " +> "
