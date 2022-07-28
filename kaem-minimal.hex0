@@ -72,7 +72,7 @@
 	85DB                            # TEST_EBX_EBX                      ; Check for missing output
 	75 06                           # JNE8 !_start_out                  ; Have real input
 	50                              # PUSH_EAX                          ; Need to adjust stack
-	BB 38820408                     # LOADI32_EBX &default_file         ; Use "kaem.run"
+	BB 38820408                     # LOADI32_EBX &default_file         ; Use "kaem.x86"
 
 # :_start_out ; (0x8048061)
 	31C9                            # XOR_ECX_ECX                       ; prepare read_only

@@ -101,17 +101,7 @@ collect_command_comment:
 	mov ecx, ebx                ; second arg = tokens
 	mov ebx, [ebx]              ; program = tokens[0]
 	int 0x80                    ; execve(program, tokens, envp);
-	                            ; return error
-
-;; Exit_Failure function
-;; Receives nothing
-;; And aborts hard
-;; Does NOT return
-Exit_Failure:
-	push 1
-	pop ebx                     ; All is wrong
-	mov eax, ebx                ; put the exit syscall number in eax
-	int 0x80                    ; Call it a bad day
+	jmp Exit_Failure            ; return error
 
 collect_command_parent:
 	mov ebx, eax                ; first arg = f
@@ -128,6 +118,16 @@ collect_command_parent:
 	;; Deal with very unhappy case
 	mov eax, hard               ; Using "Subprocess error\nABORTING HARD\n"
 	call File_Print             ; Print it
+
+;; Exit_Failure function
+;; Receives nothing
+;; And aborts hard
+;; Does NOT return
+Exit_Failure:
+	push 1
+	pop ebx                     ; All is wrong
+	mov eax, ebx                ; put the exit syscall number in eax
+	int 0x80                    ; Call it a bad day
 
 Done:
 	; program completed Successfully
@@ -243,7 +243,7 @@ collect_token_good:
 collect_string:
 	call fgetc                  ; C = fgetc(input)
 	cmp al, -4                  ; if C == EOF
-	je Exit_Failure             ; Something went horriably wrong
+	je Exit_Failure             ; Something went horribly wrong
 
 	cmp al, 34                  ; IF C == '"'
 	je collect_string_done      ; be done

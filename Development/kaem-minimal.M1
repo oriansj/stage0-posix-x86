@@ -296,7 +296,7 @@ DEFINE XOR_EDX_EDX 31D2
 :collect_string
 	CALL32 %fgetc                     ; C = fgetc(input)
 	CMPI8_AL !-4                      ; if C == EOF
-	JE32 %Exit_Failure                ; Something went horriably wrong
+	JE32 %Exit_Failure                ; Something went horribly wrong
 
 	CMPI8_AL !34                      ; IF C == '\"'
 	JE8 !collect_string_done          ; be done
