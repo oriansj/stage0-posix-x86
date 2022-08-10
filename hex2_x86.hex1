@@ -465,7 +465,7 @@
 	E9 %B                       ; JMP32 %consume_token        ; loop until done
 
 :C #:consume_token_done
-	B9 00000000                 ; LOADI32_ECX %0              ; Padd with nulls
+	B9 00000000                 ; LOADI32_ECX %0              ; Pad with nulls
 	890B                        ; STORE32_ECX_into_Address_EBX
 	83C3 04                     ; ADDI8_EBX !4
 	C3                          ; RET

@@ -427,7 +427,7 @@ consume_token:
 	jmp consume_token           ; loop until done
 
 consume_token_done:
-	mov ecx, 0                  ; Padd with nulls
+	mov ecx, 0                  ; Pad with nulls
 	mov [ebx], ecx
 	add ebx, 4
 	ret

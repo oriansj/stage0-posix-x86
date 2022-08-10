@@ -495,7 +495,7 @@ DEFINE TEST 85C0
 	JMP32 %consume_token        ; loop until done
 
 :consume_token_done
-	LOADI32_ECX %0              ; Padd with nulls
+	LOADI32_ECX %0              ; Pad with nulls
 	STORE32_ECX_into_Address_EBX
 	ADDI8_EBX !4
 	RET
