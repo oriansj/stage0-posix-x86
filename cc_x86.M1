@@ -925,13 +925,13 @@ NULL
 
 	LOAD32_Absolute32_eax &output_list          ; output
 	LOAD32_EAX_from_EAX_Immediate8 !8           ; output->s
-	LOADI32_EBX &declare_function_string_2      ; "RETURN\n"
-	CALL32 %match                               ; IF output->s == "RETURN\n"
+	LOADI32_EBX &declare_function_string_2      ; "ret\n"
+	CALL32 %match                               ; IF output->s == "ret\n"
 	CMPI8_EAX !0                                ; If true we can skip adding it
 	JE32 %declare_function_done                 ; otherwise we need to add it
 
 	;; Add the return to the end of a function lacking a return;
-	LOADI32_EAX &declare_function_string_2      ; "RETURN\n"
+	LOADI32_EAX &declare_function_string_2      ; "ret\n"
 	CALL32 %emit_out                            ; emit it
 
 :declare_function_done
@@ -942,7 +942,7 @@ NULL
 :declare_function_string_0  "# Defining function "
 :declare_function_string_1  "
 :FUNCTION_"
-:declare_function_string_2  "RETURN
+:declare_function_string_2  "ret
 "
 :declare_function_string_3  "
 "
@@ -1156,7 +1156,7 @@ NULL
 	JNE32 %statement_return                     ; Otherwise try RETURN
 
 	;; Deal with GOTO statement
-	LOADI32_EAX &statement_string_1             ; Using "JUMP %"
+	LOADI32_EAX &statement_string_1             ; Using "jmp %"
 	CALL32 %emit_out                            ; emit it
 
 	LOAD32_Absolute32_eax &global_token         ; Using global_token
@@ -1230,7 +1230,7 @@ NULL
 
 :statement_string_0  "	#C goto label
 "
-:statement_string_1  "JUMP %"
+:statement_string_1  "jmp %"
 :statement_string_2  "
 "
 :statement_string_3  "
@@ -1274,17 +1274,17 @@ Missing ;
 	LOAD32_EAX_from_EAX                         ; global_token->next
 	STORE32_Absolute32_eax &global_token        ; global_token = global_token->next
 
-	LOADI32_EAX &recursive_statement_string_0   ; Using "RETURN\n"
+	LOADI32_EAX &recursive_statement_string_0   ; Using "ret\n"
 	LOAD32_Absolute32_ebx &output_list          ; Using output
 	LOAD32_EBX_from_EBX_Immediate8 !8           ; output->S
-	CALL32 %match                               ; IF output->S == "RETURN\n"
+	CALL32 %match                               ; IF output->S == "ret\n"
 	CMPI8_EAX !0                                ; Then we can skip the clean up
 	JE32 %recursive_statement_done              ; and be done
 
 	;; Deal with cleanup
 	LOAD32_Absolute32_ebx &function             ; Using function
 	LOAD32_EBX_from_EBX_Immediate8 !4           ; i = function->locals
-	LOADI32_EAX &recursive_statement_string_1   ; Using "POP_ebx\t# _recursive_statement_locals\n"
+	LOADI32_EAX &recursive_statement_string_1   ; Using "pop_ebx\t# _recursive_statement_locals\n"
 
 :recursive_statement_locals
 	CMP_ECX_EBX                                 ; IF frame != i
@@ -1302,9 +1302,9 @@ Missing ;
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:recursive_statement_string_0  "RETURN
+:recursive_statement_string_0  "ret
 "
-:recursive_statement_string_1  "POP_ebx	# _recursive_statement_locals
+:recursive_statement_string_1  "pop_ebx	# _recursive_statement_locals
 "
 
 
@@ -1335,7 +1335,7 @@ Missing ;
 
 	LOAD32_Absolute32_ebx &function             ; Using function
 	LOAD32_EBX_from_EBX_Immediate8 !4           ; function->locals
-	LOADI32_EAX &return_result_string_1         ; Using "POP_ebx\t# _return_result_locals\n"
+	LOADI32_EAX &return_result_string_1         ; Using "pop_ebx\t# _return_result_locals\n"
 :return_result_locals
 	CMPI8_EBX !0                                ; IF NULL == i
 	JE32 %return_result_done                    ; Be done
@@ -1345,7 +1345,7 @@ Missing ;
 	JMP32 %return_result_locals                 ; Keep going
 
 :return_result_done
-	LOADI32_EAX &return_result_string_2         ; Using "RETURN\n"
+	LOADI32_EAX &return_result_string_2         ; Using "ret\n"
 	CALL32 %emit_out                            ; Emit it
 	POP_ECX                                     ; Restore ECX
 	POP_EBX                                     ; Restore EBX
@@ -1354,9 +1354,9 @@ Missing ;
 :return_result_string_0  "ERROR in return_result
 MISSING ;
 "
-:return_result_string_1  "POP_ebx	# _return_result_locals
+:return_result_string_1  "pop_ebx	# _return_result_locals
 "
-:return_result_string_2  "RETURN
+:return_result_string_2  "ret
 "
 
 
@@ -1473,7 +1473,7 @@ MISSING ;
 	LOADI32_EBX &semicolon                      ; Using ";"
 	CALL32 %require_match                       ; Make sure we have it
 
-	LOADI32_EAX &collect_local_string_3         ; Using "PUSH_eax\t#"
+	LOADI32_EAX &collect_local_string_3         ; Using "push_eax\t#"
 	CALL32 %emit_out                            ; emit it
 
 	COPY_ECX_to_EAX                             ; put A->S where it belongs
@@ -1492,7 +1492,7 @@ MISSING ;
 :collect_local_string_2  "ERROR in collect_local
 Missing ;
 "
-:collect_local_string_3  "PUSH_eax	#"
+:collect_local_string_3  "push_eax	#"
 
 
 ;; process_asm function
@@ -1587,7 +1587,7 @@ MISSING ;
 
 	CALL32 %expression                          ; Recurse to get the IF(...) part
 
-	LOADI32_EAX &process_if_string_2            ; Using "TEST\nJUMP_EQ %ELSE_"
+	LOADI32_EAX &process_if_string_2            ; Using "test_eax,eax\nje %ELSE_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1601,7 +1601,7 @@ MISSING ;
 
 	CALL32 %statement                           ; Recursive to get the IF(){...} part
 
-	LOADI32_EAX &process_if_string_4            ; Using "JUMP %_END_IF_"
+	LOADI32_EAX &process_if_string_4            ; Using "jmp %_END_IF_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1647,12 +1647,12 @@ MISSING ;
 :process_if_string_1  "ERROR in process_if
 MISSING (
 "
-:process_if_string_2  "TEST
-JUMP_EQ %ELSE_"
+:process_if_string_2  "test_eax,eax
+je %ELSE_"
 :process_if_string_3  "ERROR in process_if
 MISSING )
 "
-:process_if_string_4  "JUMP %_END_IF_"
+:process_if_string_4  "jmp %_END_IF_"
 :process_if_string_5  ":ELSE_"
 :process_if_string_6  ":_END_IF_"
 
@@ -1761,7 +1761,7 @@ MISSING )
 	LOADI32_EBX &semicolon                      ; Using ";"
 	CALL32 %require_match                       ; Make sure we have it
 
-	LOADI32_EAX &process_do_string_6            ; Using "TEST\nJUMP_NE %DO_"
+	LOADI32_EAX &process_do_string_6            ; Using "test_eax,eax\njne %DO_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1796,8 +1796,8 @@ MISSING )
 :process_do_string_5  "ERROR in process_do
 MISSING ;
 "
-:process_do_string_6  "TEST
-JUMP_NE %DO_"
+:process_do_string_6  "test_eax,eax
+jne %DO_"
 :process_do_string_7  ":DO_END_"
 
 
@@ -1840,7 +1840,7 @@ JUMP_NE %DO_"
 
 	CALL32 %expression                          ; Deal with the WHILE (...) part
 
-	LOADI32_EAX &process_while_string_3         ; Using "TEST\nJUMP_EQ %END_WHILE_"
+	LOADI32_EAX &process_while_string_3         ; Using "test_eax,eax\nje %END_WHILE_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1861,7 +1861,7 @@ JUMP_NE %DO_"
 
 	CALL32 %statement                           ; Deal with the {....} part
 
-	LOADI32_EAX &process_while_string_6         ; Using "JUMP %WHILE_"
+	LOADI32_EAX &process_while_string_6         ; Using "jmp %WHILE_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1887,13 +1887,13 @@ JUMP_NE %DO_"
 :process_while_string_2  "ERROR in process_while
 MISSING (
 "
-:process_while_string_3  "TEST
-JUMP_EQ %END_WHILE_"
+:process_while_string_3  "test_eax,eax
+je %END_WHILE_"
 :process_while_string_4  "# THEN_while_"
 :process_while_string_5  "ERROR in process_while
 MISSING )
 "
-:process_while_string_6  "JUMP %WHILE_"
+:process_while_string_6  "jmp %WHILE_"
 :process_while_string_7  ":END_WHILE_"
 
 
@@ -1959,7 +1959,7 @@ MISSING )
 
 	CALL32 %expression                          ; Get the FOR ( ; ... ; Part
 
-	LOADI32_EAX &process_for_string_5           ; Using "TEST\nJUMP_EQ %FOR_END_"
+	LOADI32_EAX &process_for_string_5           ; Using "test_eax,eax\nje %FOR_END_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1967,7 +1967,7 @@ MISSING )
 	COPY_ECX_to_EBX                             ; Passing NUMBER_STRING
 	CALL32 %uniqueID_out                        ; uniqueID_out(function->s, number_string)
 
-	LOADI32_EAX &process_for_string_6           ; Using "JUMP %FOR_THEN_"
+	LOADI32_EAX &process_for_string_6           ; Using "jmp %FOR_THEN_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -1987,7 +1987,7 @@ MISSING )
 
 	CALL32 %expression                          ; Get the FOR (;;...) part
 
-	LOADI32_EAX &process_for_string_9           ; Using "JUMP %FOR_"
+	LOADI32_EAX &process_for_string_9           ; Using "jmp %FOR_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -2008,7 +2008,7 @@ MISSING )
 
 	CALL32 %statement                           ; Get FOR (;;) {...} part
 
-	LOADI32_EAX &process_for_string_12          ; Using "JUMP %FOR_ITER_"
+	LOADI32_EAX &process_for_string_12          ; Using "jmp %FOR_ITER_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -2038,19 +2038,19 @@ MISSING (
 :process_for_string_4  "ERROR in process_for
 MISSING ;1
 "
-:process_for_string_5  "TEST
-JUMP_EQ %FOR_END_"
-:process_for_string_6  "JUMP %FOR_THEN_"
+:process_for_string_5  "test_eax,eax
+je %FOR_END_"
+:process_for_string_6  "jmp %FOR_THEN_"
 :process_for_string_7  ":FOR_ITER_"
 :process_for_string_8  "ERROR in process_for
 MISSING ;2
 "
-:process_for_string_9  "JUMP %FOR_"
+:process_for_string_9  "jmp %FOR_"
 :process_for_string_10 ":FOR_THEN_"
 :process_for_string_11 "ERROR in process_for
 MISSING )
 "
-:process_for_string_12 "JUMP %FOR_ITER_"
+:process_for_string_12 "jmp %FOR_ITER_"
 :process_for_string_13 ":FOR_END_"
 
 
@@ -2069,7 +2069,7 @@ MISSING )
 	LOAD32_Absolute32_eax &function             ; Using function
 	LOAD32_ECX_from_EAX_Immediate8 !4           ; I = function->LOCALS
 	LOAD32_Absolute32_ebx &break_frame          ; Put break_frame in the right spot
-	LOADI32_EAX &process_break_string_1         ; Using "POP_ebx\t# break_cleanup_locals\n"
+	LOADI32_EAX &process_break_string_1         ; Using "pop_ebx\t# break_cleanup_locals\n"
 
 :process_break_iter
 	CMPI8_ECX !0                                ; IF (NULL == I)
@@ -2087,7 +2087,7 @@ MISSING )
 	LOAD32_EAX_from_EAX                         ; global_token->NEXT
 	STORE32_Absolute32_eax &global_token        ; global_token = global_token->NEXT
 
-	LOADI32_EAX &process_break_string_2         ; Using "JUMP %"
+	LOADI32_EAX &process_break_string_2         ; Using "jmp %"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &break_target_head    ; Get what we are in
@@ -2126,9 +2126,9 @@ MISSING )
 	JMP32 %Exit_Failure                         ; Abort Hard
 
 :process_break_string_0  "Not inside of a loop or case statement"
-:process_break_string_1  "POP_ebx	# break_cleanup_locals
+:process_break_string_1  "pop_ebx	# break_cleanup_locals
 "
-:process_break_string_2  "JUMP %"
+:process_break_string_2  "jmp %"
 :process_break_string_3  "
 "
 :process_break_string_4  "ERROR in break statement
@@ -2154,7 +2154,7 @@ Missing ;
 	JNE32 %expression_done                      ; Looks like nope
 
 	;; Deal with possible assignment
-	LOADI32_ECX &expression_string_1            ; Assume "STORE_CHAR\n" by default
+	LOADI32_ECX &expression_string_1            ; Assume "mov_[ebx],al\n" by default
 	LOAD32_Absolute32_ebx &global_token         ; Using global_token
 	LOAD32_EBX_from_EBX_Immediate8 !4           ; global_token->PREV
 	LOAD32_EBX_from_EBX_Immediate8 !8           ; global_token->PREV->S
@@ -2170,10 +2170,10 @@ Missing ;
 	CMPI8_EAX !0                                ; IF current_target->NAME == "char*"
 	JNE32 %expression_int                       ; Do char anyway
 
-	JMP32 %expression_common                    ; Looks like we have to use "STORE_CHAR\n"
+	JMP32 %expression_common                    ; Looks like we have to use "mov_[ebx],al\n"
 
 :expression_int
-	LOADI32_ECX &expression_string_0            ; Use "STORE_INTEGER\n"
+	LOADI32_ECX &expression_string_0            ; Use "mov_[ebx],eax\n"
 
 :expression_common
 	LOADI32_EAX &expression                     ; Passing expression
@@ -2188,9 +2188,9 @@ Missing ;
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:expression_string_0  "STORE_INTEGER
+:expression_string_0  "mov_[ebx],eax
 "
-:expression_string_1  "STORE_CHAR
+:expression_string_1  "mov_[ebx],al
 "
 
 
@@ -2216,31 +2216,31 @@ Missing ;
 	PUSH_EDX                                    ; Protect EDX
 
 	LOADI32_EAX &relational_expr                ; Using relational_expr
-	LOADI32_EBX &bitwise_expr_stub_string_0     ; Using "AND_eax_ebx\n"
+	LOADI32_EBX &bitwise_expr_stub_string_0     ; Using "and_eax,ebx\n"
 	LOADI32_ECX &bitwise_and                    ; Using "&"
 	LOADI32_EDX &bitwise_expr_stub              ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &relational_expr                ; Using relational_expr
-	LOADI32_EBX &bitwise_expr_stub_string_0     ; Using "AND_eax_ebx\n"
+	LOADI32_EBX &bitwise_expr_stub_string_0     ; Using "and_eax,ebx\n"
 	LOADI32_ECX &logical_and                    ; Using "&&"
 	LOADI32_EDX &bitwise_expr_stub              ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &relational_expr                ; Using relational_expr
-	LOADI32_EBX &bitwise_expr_stub_string_1     ; Using "OR_eax_ebx\n"
+	LOADI32_EBX &bitwise_expr_stub_string_1     ; Using "or_eax,ebx\n"
 	LOADI32_ECX &bitwise_or                     ; Using "|"
 	LOADI32_EDX &bitwise_expr_stub              ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &relational_expr                ; Using relational_expr
-	LOADI32_EBX &bitwise_expr_stub_string_1     ; Using "OR_eax_ebx\n"
+	LOADI32_EBX &bitwise_expr_stub_string_1     ; Using "or_eax,ebx\n"
 	LOADI32_ECX &logical_or                     ; Using "||"
 	LOADI32_EDX &bitwise_expr_stub              ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &relational_expr                ; Using relational_expr
-	LOADI32_EBX &bitwise_expr_stub_string_2     ; Using "XOR_ebx_eax_into_eax\n"
+	LOADI32_EBX &bitwise_expr_stub_string_2     ; Using "xor_eax,ebx\n"
 	LOADI32_ECX &bitwise_xor                    ; Using "^"
 	LOADI32_EDX &bitwise_expr_stub              ; And recurse
 	CALL32 %general_recursion                   ; Hit it
@@ -2250,11 +2250,11 @@ Missing ;
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:bitwise_expr_stub_string_0  "AND_eax_ebx
+:bitwise_expr_stub_string_0  "and_eax,ebx
 "
-:bitwise_expr_stub_string_1  "OR_eax_ebx
+:bitwise_expr_stub_string_1  "or_eax,ebx
 "
-:bitwise_expr_stub_string_2  "XOR_ebx_eax_into_eax
+:bitwise_expr_stub_string_2  "xor_eax,ebx
 "
 
 
@@ -2280,37 +2280,37 @@ Missing ;
 	PUSH_EDX                                    ; Protect EDX
 
 	LOADI32_EAX &additive_expr                  ; Using additive_expr
-	LOADI32_EBX &relational_expr_stub_string_0  ; Using "CMP\nSETL\nMOVEZBL\n"
+	LOADI32_EBX &relational_expr_stub_string_0  ; Using "cmp\nsetl_al\nmovzx_eax,al\n"
 	LOADI32_ECX &less_than_string               ; Using "<"
 	LOADI32_EDX &relational_expr_stub           ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &additive_expr                  ; Using additive_expr
-	LOADI32_EBX &relational_expr_stub_string_1  ; Using "CMP\nSETLE\nMOVEZBL\n"
+	LOADI32_EBX &relational_expr_stub_string_1  ; Using "cmp\nsetle_al\nmovzx_eax,al\n"
 	LOADI32_ECX &less_than_equal_string         ; Using "<="
 	LOADI32_EDX &relational_expr_stub           ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &additive_expr                  ; Using additive_expr
-	LOADI32_EBX &relational_expr_stub_string_2  ; Using "CMP\nSETGE\nMOVEZBL\n"
+	LOADI32_EBX &relational_expr_stub_string_2  ; Using "cmp\nsetge_al\nmovzx_eax,al\n"
 	LOADI32_ECX &greater_than_equal_string      ; Using ">="
 	LOADI32_EDX &relational_expr_stub           ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &additive_expr                  ; Using additive_expr
-	LOADI32_EBX &relational_expr_stub_string_3  ; Using "CMP\nSETG\nMOVEZBL\n"
+	LOADI32_EBX &relational_expr_stub_string_3  ; Using "cmp\nsetg_al\nmovzx_eax,al\n"
 	LOADI32_ECX &greater_than_string            ; Using ">"
 	LOADI32_EDX &relational_expr_stub           ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &additive_expr                  ; Using additive_expr
-	LOADI32_EBX &relational_expr_stub_string_4  ; Using "CMP\nSETE\nMOVEZBL\n"
+	LOADI32_EBX &relational_expr_stub_string_4  ; Using "cmp\nsete_al\nmovzx_eax,al\n"
 	LOADI32_ECX &equal_to_string                ; Using "=="
 	LOADI32_EDX &relational_expr_stub           ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &additive_expr                  ; Using additive_expr
-	LOADI32_EBX &relational_expr_stub_string_5  ; Using "CMP\nSETNE\nMOVEZBL\n"
+	LOADI32_EBX &relational_expr_stub_string_5  ; Using "cmp\nsetne_al\nmovzx_eax,al\n"
 	LOADI32_ECX &not_equal_string               ; Using "!="
 	LOADI32_EDX &relational_expr_stub           ; And recurse
 	CALL32 %general_recursion                   ; Hit it
@@ -2320,29 +2320,29 @@ Missing ;
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:relational_expr_stub_string_0  "CMP
-SETL
-MOVEZBL
+:relational_expr_stub_string_0  "cmp
+setl_al
+movzx_eax,al
 "
-:relational_expr_stub_string_1  "CMP
-SETLE
-MOVEZBL
+:relational_expr_stub_string_1  "cmp
+setle_al
+movzx_eax,al
 "
-:relational_expr_stub_string_2  "CMP
-SETGE
-MOVEZBL
+:relational_expr_stub_string_2  "cmp
+setge_al
+movzx_eax,al
 "
-:relational_expr_stub_string_3  "CMP
-SETG
-MOVEZBL
+:relational_expr_stub_string_3  "cmp
+setg_al
+movzx_eax,al
 "
-:relational_expr_stub_string_4  "CMP
-SETE
-MOVEZBL
+:relational_expr_stub_string_4  "cmp
+sete_al
+movzx_eax,al
 "
-:relational_expr_stub_string_5  "CMP
-SETNE
-MOVEZBL
+:relational_expr_stub_string_5  "cmp
+setne_al
+movzx_eax,al
 "
 
 
@@ -2368,43 +2368,43 @@ MOVEZBL
 	PUSH_EDX                                    ; Protect EDX
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_0    ; Using "ADD_ebx_to_eax\n"
+	LOADI32_EBX &additive_expr_stub_string_0    ; Using "add_eax,ebx\n"
 	LOADI32_ECX &plus_string                    ; Using "+"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_1    ; Using "SUBTRACT_eax_from_ebx_into_ebx\nMOVE_ebx_to_eax\n"
+	LOADI32_EBX &additive_expr_stub_string_1    ; Using "sub_ebx,eax\nmov_eax,ebx\n"
 	LOADI32_ECX &minus_string                   ; Using "-"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_2    ; Using "MULTIPLY_eax_by_ebx_into_eax\n"
+	LOADI32_EBX &additive_expr_stub_string_2    ; Using "mul_ebx\n"
 	LOADI32_ECX &multiply_string                ; Using "*"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_3    ; Using "XCHG_eax_ebx\nLOAD_IMMEDIATE_edx %0\nDIVIDE_eax_by_ebx_into_eax\n"
+	LOADI32_EBX &additive_expr_stub_string_3    ; Using "xchg_ebx,eax\nmov_edx, %0\ndiv_ebx\n"
 	LOADI32_ECX &divide_string                  ; Using "/"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_4    ; Using "XCHG_eax_ebx\nLOAD_IMMEDIATE_edx %0\nMODULUS_eax_from_ebx_into_ebx\nMOVE_edx_to_eax\n"
+	LOADI32_EBX &additive_expr_stub_string_4    ; Using "xchg_ebx,eax\nmov_edx, %0\ndiv_ebx\nmov_eax,edx\n"
 	LOADI32_ECX &modulus_string                 ; Using "%"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_5    ; Using "COPY_eax_to_ecx\nCOPY_ebx_to_eax\nSAL_eax_cl\n"
+	LOADI32_EBX &additive_expr_stub_string_5    ; Using "mov_ecx,eax\nmov_eax,ebx\nsal_eax,cl\n"
 	LOADI32_ECX &left_shift_string              ; Using "<<"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
 
 	LOADI32_EAX &postfix_expr                   ; Using postfix_expr
-	LOADI32_EBX &additive_expr_stub_string_6    ; Using "COPY_eax_to_ecx\nCOPY_ebx_to_eax\nSAR_eax_cl\n"
+	LOADI32_EBX &additive_expr_stub_string_6    ; Using "mov_ecx,eax\nmov_eax,ebx\nsar_eax,cl\n"
 	LOADI32_ECX &right_shift_string             ; Using ">>"
 	LOADI32_EDX &additive_expr_stub             ; And recurse
 	CALL32 %general_recursion                   ; Hit it
@@ -2414,29 +2414,29 @@ MOVEZBL
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:additive_expr_stub_string_0  "ADD_ebx_to_eax
+:additive_expr_stub_string_0  "add_eax,ebx
 "
-:additive_expr_stub_string_1  "SUBTRACT_eax_from_ebx_into_ebx
-MOVE_ebx_to_eax
+:additive_expr_stub_string_1  "sub_ebx,eax
+mov_eax,ebx
 "
-:additive_expr_stub_string_2  "MULTIPLY_eax_by_ebx_into_eax
+:additive_expr_stub_string_2  "mul_ebx
 "
-:additive_expr_stub_string_3  "XCHG_eax_ebx
-LOAD_IMMEDIATE_edx %0
-DIVIDE_eax_by_ebx_into_eax
+:additive_expr_stub_string_3  "xchg_ebx,eax
+mov_edx, %0
+div_ebx
 "
-:additive_expr_stub_string_4  "XCHG_eax_ebx
-LOAD_IMMEDIATE_edx %0
-MODULUS_eax_from_ebx_into_ebx
-MOVE_edx_to_eax
+:additive_expr_stub_string_4  "xchg_ebx,eax
+mov_edx, %0
+div_ebx
+mov_eax,edx
 "
-:additive_expr_stub_string_5  "COPY_eax_to_ecx
-COPY_ebx_to_eax
-SAL_eax_cl
+:additive_expr_stub_string_5  "mov_ecx,eax
+mov_eax,ebx
+sal_eax,cl
 "
-:additive_expr_stub_string_6  "COPY_eax_to_ecx
-COPY_ebx_to_eax
-SAR_eax_cl
+:additive_expr_stub_string_6  "mov_ecx,eax
+mov_eax,ebx
+sar_eax,cl
 "
 
 
@@ -2506,7 +2506,7 @@ SAR_eax_cl
 	LOADI32_EBX &close_paren                    ; Using ")"
 	CALL32 %require_match                       ; Make sure we have it
 
-	LOADI32_EAX &unary_expr_sizeof_string_2     ; Using "LOAD_IMMEDIATE_eax %"
+	LOADI32_EAX &unary_expr_sizeof_string_2     ; Using "mov_eax, %"
 	CALL32 %emit_out                            ; Emit it
 
 	COPY_ECX_to_EAX                             ; Put A->SIZE in the right place
@@ -2526,7 +2526,7 @@ Missing (
 :unary_expr_sizeof_string_1  "ERROR in unary_expr
 Missing )
 "
-:unary_expr_sizeof_string_2  "LOAD_IMMEDIATE_eax %"
+:unary_expr_sizeof_string_2  "mov_eax, %"
 :unary_expr_sizeof_string_3  "
 "
 
@@ -2547,7 +2547,7 @@ Missing )
 	POP_EBX                                     ; Restore array
 	STORE32_Absolute32_ebx &current_target      ; current_target = ARRAY
 
-	LOADI32_ECX &postfix_expr_array_string_0    ; ASSIGN = "LOAD_INTEGER\n"
+	LOADI32_ECX &postfix_expr_array_string_0    ; ASSIGN = "mov_eax,[eax]\n"
 
 	LOADI32_EAX &type_char_indirect_name        ; Using "char*"
 	LOAD32_EBX_from_EBX_Immediate8 !24          ; current_target->NAME
@@ -2556,12 +2556,12 @@ Missing )
 	JNE32 %postfix_expr_array_large             ; Otherwise adjust
 
 	;; Deal with loading byte
-	LOADI32_ECX &postfix_expr_array_string_1    ; ASSIGN = "LOAD_BYTE\n"
+	LOADI32_ECX &postfix_expr_array_string_1    ; ASSIGN = "movsx_eax,BYTE_PTR_[eax]\n"
 	JMP32 %postfix_expr_array_common            ; Do the next bit
 
 :postfix_expr_array_large
 	;; deal with arrays made of things other than chars
-	LOADI32_EAX &postfix_expr_array_string_2    ; Using "SAL_eax_Immediate8 !"
+	LOADI32_EAX &postfix_expr_array_string_2    ; Using "sal_eax, !"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &current_target       ; Using current_target
@@ -2575,7 +2575,7 @@ Missing )
 	CALL32 %emit_out                            ; Emit it
 
 :postfix_expr_array_common
-	LOADI32_EAX &postfix_expr_array_string_4    ; Using "ADD_ebx_to_eax\n"
+	LOADI32_EAX &postfix_expr_array_string_4    ; Using "add_eax,ebx\n"
 	CALL32 %emit_out                            ; Emit it
 
 	LOADI32_EAX &postfix_expr_array_string_5    ; Using "ERROR in postfix_expr\nMissing ]\n"
@@ -2600,14 +2600,14 @@ Missing )
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:postfix_expr_array_string_0  "LOAD_INTEGER
+:postfix_expr_array_string_0  "mov_eax,[eax]
 "
-:postfix_expr_array_string_1  "LOAD_BYTE
+:postfix_expr_array_string_1  "movsx_eax,BYTE_PTR_[eax]
 "
-:postfix_expr_array_string_2  "SAL_eax_Immediate8 !"
+:postfix_expr_array_string_2  "sal_eax, !"
 :postfix_expr_array_string_3  "
 "
-:postfix_expr_array_string_4  "ADD_ebx_to_eax
+:postfix_expr_array_string_4  "add_eax,ebx
 "
 :postfix_expr_array_string_5  "ERROR in postfix_expr
 Missing ]
@@ -2679,14 +2679,14 @@ Missing ]
 	JE32 %postfix_expr_arrow_first              ; Then we don't need to do an offset
 
 	;; Deal with needing an offset
-	LOADI32_EAX &postfix_expr_arrow_string_1    ; Using "# -> offset calculation\nLOAD_IMMEDIATE_ebx %"
+	LOADI32_EAX &postfix_expr_arrow_string_1    ; Using "# -> offset calculation\nmov_ebx, %"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_EAX_from_EBX_Immediate8 !8           ; I->OFFSET
 	CALL32 %numerate_number                     ; Convert to string
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &postfix_expr_arrow_string_2    ; Using "\nADD_ebx_to_eax\n"
+	LOADI32_EAX &postfix_expr_arrow_string_2    ; Using "\nadd_eax,ebx\n"
 	CALL32 %emit_out                            ; Emit it
 
 :postfix_expr_arrow_first
@@ -2703,7 +2703,7 @@ Missing ]
 	JE32 %postfix_expr_arrow_done               ; Be done
 
 	;; Deal with load case
-	LOADI32_EAX &postfix_expr_arrow_string_3    ; Using "LOAD_INTEGER\n"
+	LOADI32_EAX &postfix_expr_arrow_string_3    ; Using "mov_eax,[eax]\n"
 	CALL32 %emit_out                            ; Emit it
 
 :postfix_expr_arrow_done
@@ -2713,11 +2713,11 @@ Missing ]
 :postfix_expr_arrow_string_0  "# looking up offset
 "
 :postfix_expr_arrow_string_1  "# -> offset calculation
-LOAD_IMMEDIATE_ebx %"
+mov_ebx, %"
 :postfix_expr_arrow_string_2  "
-ADD_ebx_to_eax
+add_eax,ebx
 "
-:postfix_expr_arrow_string_3  "LOAD_INTEGER
+:postfix_expr_arrow_string_3  "mov_eax,[eax]
 "
 
 
@@ -2747,13 +2747,13 @@ ADD_ebx_to_eax
 	JNE32 %primary_expr_not                     ; Otherwise try logical NOT
 
 	;; Deal with negative numbers
-	LOADI32_EAX &primary_expr_string_0          ; Using "LOAD_IMMEDIATE_eax %0\n"
+	LOADI32_EAX &primary_expr_string_0          ; Using "mov_eax, %0\n"
 	CALL32 %emit_out                            ; Emit it
 
 	LOADI32_EAX &postfix_expr                   ; Passing postfix_expr
 	CALL32 %common_recursion                    ; Get what it is notting
 
-	LOADI32_EAX &primary_expr_string_1          ; Using "SUBTRACT_eax_from_ebx_into_ebx\nMOVE_ebx_to_eax\n"
+	LOADI32_EAX &primary_expr_string_1          ; Using "sub_ebx,eax\nmov_eax,ebx\n"
 	CALL32 %emit_out                            ; Emit it
 	JMP32 %primary_expr_done                    ; Be done
 
@@ -2766,13 +2766,13 @@ ADD_ebx_to_eax
 	JNE32 %primary_expr_bin                     ; Otherwise try '~'
 
 	;; Deal with logical not
-	LOADI32_EAX &primary_expr_string_2          ; Using "LOAD_IMMEDIATE_eax %1\n"
+	LOADI32_EAX &primary_expr_string_2          ; Using "mov_eax, %1\n"
 	CALL32 %emit_out                            ; Emit it
 
 	LOADI32_EAX &postfix_expr                   ; Passing postfix_expr
 	CALL32 %common_recursion                    ; Get what it is notting
 
-	LOADI32_EAX &primary_expr_string_3          ; Using "XOR_ebx_eax_into_eax\n"
+	LOADI32_EAX &primary_expr_string_3          ; Using "xor_eax,ebx\n"
 	CALL32 %emit_out                            ; Emit it
 	JMP32 %primary_expr_done                    ; Be done
 
@@ -2787,7 +2787,7 @@ ADD_ebx_to_eax
 	;; Deal with binary NOT
 	LOADI32_EAX &postfix_expr                   ; Passing postfix_expr
 	CALL32 %common_recursion                    ; Get what it is notting
-	LOADI32_EAX &primary_expr_string_4          ; Using "NOT_eax\n"
+	LOADI32_EAX &primary_expr_string_4          ; Using "not_eax\n"
 	CALL32 %emit_out                            ; Emit it
 	JMP32 %primary_expr_done                    ; Be done
 
@@ -2869,16 +2869,16 @@ ADD_ebx_to_eax
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:primary_expr_string_0  "LOAD_IMMEDIATE_eax %0
+:primary_expr_string_0  "mov_eax, %0
 "
-:primary_expr_string_1  "SUBTRACT_eax_from_ebx_into_ebx
-MOVE_ebx_to_eax
+:primary_expr_string_1  "sub_ebx,eax
+mov_eax,ebx
 "
-:primary_expr_string_2  "LOAD_IMMEDIATE_eax %1
+:primary_expr_string_2  "mov_eax, %1
 "
-:primary_expr_string_3  "XOR_ebx_eax_into_eax
+:primary_expr_string_3  "xor_eax,ebx
 "
-:primary_expr_string_4  "NOT_eax
+:primary_expr_string_4  "not_eax
 "
 :primary_expr_string_5  "Error in Primary expression
 Didn't get )
@@ -2908,7 +2908,7 @@ Didn't get )
 
 	;; Deal with constant load
 	LOAD32_EBX_from_EAX_Immediate8 !16          ; a->ARGS
-	LOADI32_EAX &primary_expr_variable_string_2 ; Using "LOAD_IMMEDIATE_eax %"
+	LOADI32_EAX &primary_expr_variable_string_2 ; Using "mov_eax, %"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_EAX_from_EBX_Immediate8 !8           ; a->ARGS->S
@@ -2984,7 +2984,7 @@ Didn't get )
 "
 :primary_expr_variable_string_1  "
 "
-:primary_expr_variable_string_2  "LOAD_IMMEDIATE_eax %"
+:primary_expr_variable_string_2  "mov_eax, %"
 
 
 ;; function_call function
@@ -3004,13 +3004,13 @@ Didn't get )
 	LOADI32_EBX &open_paren                     ; Using "("
 	CALL32 %require_match                       ; Make sure we have it
 
-	LOADI32_EAX &function_call_string_1         ; Using "PUSH_edi\t# Prevent overwriting in recursion\n"
+	LOADI32_EAX &function_call_string_1         ; Using "push_edi\t# Prevent overwriting in recursion\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_2         ; Using "PUSH_ebp\t# Protect the old base pointer\n"
+	LOADI32_EAX &function_call_string_2         ; Using "push_ebp\t# Protect the old base pointer\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_3         ; Using "COPY_esp_to_edi\t# Copy new base pointer\n"
+	LOADI32_EAX &function_call_string_3         ; Using "mov_edi,esp\t# Copy new base pointer\n"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &global_token         ; Using global_token
@@ -3023,7 +3023,7 @@ Didn't get )
 	;; looks like we have arguments to collect
 	CALL32 %expression                          ; Collect the argument
 
-	LOADI32_EAX &function_call_string_4         ; Using "PUSH_eax\t#_process_expression1\n"
+	LOADI32_EAX &function_call_string_4         ; Using "push_eax\t#_process_expression1\n"
 	CALL32 %emit_out                            ; Emit it
 	LOADI32_ESI %1                              ; PASSED = 1
 
@@ -3041,7 +3041,7 @@ Didn't get )
 
 	CALL32 %expression                          ; Collect the argument
 
-	LOADI32_EAX &function_call_string_5         ; Using "PUSH_eax\t#_process_expression2\n"
+	LOADI32_EAX &function_call_string_5         ; Using "push_eax\t#_process_expression2\n"
 	CALL32 %emit_out                            ; Emit it
 	ADDI8_ESI !1                                ; PASSED = PASSED + 1
 	JMP32 %function_call_gen_iter               ; Keep trying
@@ -3056,30 +3056,30 @@ Didn't get )
 	JNE32 %function_call_static                 ; Otherwise it is a static call
 
 	;; Deal with a passed function pointer
-	LOADI32_EAX &function_call_string_7         ; Using "LOAD_BASE_ADDRESS_eax %"
+	LOADI32_EAX &function_call_string_7         ; Using "lea_eax,[ebp+DWORD] %"
 	CALL32 %emit_out                            ; Emit it
 
 	COPY_ECX_to_EAX                             ; Using S
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_8         ; Using "\nLOAD_INTEGER\n"
+	LOADI32_EAX &function_call_string_8         ; Using "\nmov_eax,[eax]\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_9         ; Using "COPY_edi_to_ebp\n"
+	LOADI32_EAX &function_call_string_9         ; Using "mov_ebp,edi\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_10        ; Using "CALL_eax\n"
+	LOADI32_EAX &function_call_string_10        ; Using "call_eax\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_13        ; Using "POP_ebx\t# _process_expression_locals\n"
+	LOADI32_EAX &function_call_string_13        ; Using "pop_ebx\t# _process_expression_locals\n"
 	JMP32 %function_call_cleanup                ; Clean up
 
 :function_call_static
 	;; Deal with fixed function name
-	LOADI32_EAX &function_call_string_9         ; Using "COPY_edi_to_ebp\n"
+	LOADI32_EAX &function_call_string_9         ; Using "mov_ebp,edi\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_11        ; Using "CALL_IMMEDIATE %FUNCTION_"
+	LOADI32_EAX &function_call_string_11        ; Using "call %FUNCTION_"
 	CALL32 %emit_out                            ; Emit it
 
 	COPY_ECX_to_EAX                             ; Using S
@@ -3088,7 +3088,7 @@ Didn't get )
 	LOADI32_EAX &function_call_string_12        ; Using "\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_13        ; Using "POP_ebx\t# _process_expression_locals\n"
+	LOADI32_EAX &function_call_string_13        ; Using "pop_ebx\t# _process_expression_locals\n"
 
 :function_call_cleanup
 	CMPI8_ESI !0                                ; IF PASSED > 0
@@ -3101,10 +3101,10 @@ Didn't get )
 	JMP32 %function_call_cleanup                ; Keep going
 
 :function_call_done
-	LOADI32_EAX &function_call_string_14        ; Using "POP_ebp\t# Restore old base pointer\n"
+	LOADI32_EAX &function_call_string_14        ; Using "pop_ebp\t# Restore old base pointer\n"
 	CALL32 %emit_out                            ; Emit it
 
-	LOADI32_EAX &function_call_string_15        ; Using "POP_edi\t# Prevent overwrite\n"
+	LOADI32_EAX &function_call_string_15        ; Using "pop_edi\t# Prevent overwrite\n"
 	CALL32 %emit_out                            ; Emit it
 
 	POP_ESI                                     ; Restore ESI
@@ -3116,35 +3116,35 @@ Didn't get )
 :function_call_string_0  "ERROR in process_expression_list
 No ( was found
 "
-:function_call_string_1  "PUSH_edi	# Prevent overwriting in recursion
+:function_call_string_1  "push_edi	# Prevent overwriting in recursion
 "
-:function_call_string_2  "PUSH_ebp	# Protect the old base pointer
+:function_call_string_2  "push_ebp	# Protect the old base pointer
 "
-:function_call_string_3  "COPY_esp_to_edi	# Copy new base pointer
+:function_call_string_3  "mov_edi,esp	# Copy new base pointer
 "
-:function_call_string_4  "PUSH_eax	#_process_expression1
+:function_call_string_4  "push_eax	#_process_expression1
 "
-:function_call_string_5  "PUSH_eax	#_process_expression2
+:function_call_string_5  "push_eax	#_process_expression2
 "
 :function_call_string_6  "ERROR in process_expression_list
 No ) was found
 "
-:function_call_string_7  "LOAD_BASE_ADDRESS_eax %"
+:function_call_string_7  "lea_eax,[ebp+DWORD] %"
 :function_call_string_8  "
-LOAD_INTEGER
+mov_eax,[eax]
 "
-:function_call_string_9  "COPY_edi_to_ebp
+:function_call_string_9  "mov_ebp,edi
 "
-:function_call_string_10 "CALL_eax
+:function_call_string_10 "call_eax
 "
-:function_call_string_11 "CALL_IMMEDIATE %FUNCTION_"
+:function_call_string_11 "call %FUNCTION_"
 :function_call_string_12 "
 "
-:function_call_string_13 "POP_ebx	# _process_expression_locals
+:function_call_string_13 "pop_ebx	# _process_expression_locals
 "
-:function_call_string_14 "POP_ebp	# Restore old base pointer
+:function_call_string_14 "pop_ebp	# Restore old base pointer
 "
-:function_call_string_15 "POP_edi	# Prevent overwrite
+:function_call_string_15 "pop_edi	# Prevent overwrite
 "
 
 
@@ -3183,7 +3183,7 @@ LOAD_INTEGER
 	LOAD32_EAX_from_ECX_Immediate8 !12          ; A->TYPE
 	STORE32_Absolute32_eax &current_target      ; current_target = A->TYPE
 
-	LOADI32_EAX &variable_load_string_0         ; Using "LOAD_BASE_ADDRESS_eax %"
+	LOADI32_EAX &variable_load_string_0         ; Using "lea_eax,[ebp+DWORD] %"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_EAX_from_ECX_Immediate8 !16          ; A->DEPTH
@@ -3202,7 +3202,7 @@ LOAD_INTEGER
 	JE32 %variable_load_done                    ; And be done
 
 	;; Deal with common case
-	LOADI32_EAX &variable_load_string_2         ; Using "LOAD_INTEGER\n"
+	LOADI32_EAX &variable_load_string_2         ; Using "mov_eax,[eax]\n"
 	CALL32 %emit_out                            ; Emit it
 
 :variable_load_done
@@ -3210,10 +3210,10 @@ LOAD_INTEGER
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:variable_load_string_0  "LOAD_BASE_ADDRESS_eax %"
+:variable_load_string_0  "lea_eax,[ebp+DWORD] %"
 :variable_load_string_1  "
 "
-:variable_load_string_2  "LOAD_INTEGER
+:variable_load_string_2  "mov_eax,[eax]
 "
 
 
@@ -3240,7 +3240,7 @@ LOAD_INTEGER
 	JMP32 %function_load_done                   ; Be done
 
 :function_load_regular
-	LOADI32_EAX &function_load_string_0         ; Using "LOAD_IMMEDIATE_eax &FUNCTION_"
+	LOADI32_EAX &function_load_string_0         ; Using "mov_eax, &FUNCTION_"
 	CALL32 %emit_out                            ; Emit it
 
 	COPY_ECX_to_EAX                             ; Using A->S
@@ -3254,7 +3254,7 @@ LOAD_INTEGER
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:function_load_string_0  "LOAD_IMMEDIATE_eax &FUNCTION_"
+:function_load_string_0  "mov_eax, &FUNCTION_"
 :function_load_string_1  "
 "
 
@@ -3271,7 +3271,7 @@ LOAD_INTEGER
 	LOAD32_EAX_from_EAX_Immediate8 !12          ; A->TYPE
 	STORE32_Absolute32_eax &current_target      ; current_target = A->TYPE
 
-	LOADI32_EAX &global_load_string_0           ; Using "LOAD_IMMEDIATE_eax &GLOBAL_"
+	LOADI32_EAX &global_load_string_0           ; Using "mov_eax, &GLOBAL_"
 	CALL32 %emit_out                            ; Emit it
 
 	COPY_EBX_to_EAX                             ; Using A->S
@@ -3288,17 +3288,17 @@ LOAD_INTEGER
 	JE32 %global_load_done                      ; and be done
 
 	;; Otherwise we are loading the contents
-	LOADI32_EAX &global_load_string_2           ; Using "LOAD_INTEGER\n"
+	LOADI32_EAX &global_load_string_2           ; Using "mov_eax,[eax]\n"
 	CALL32 %emit_out                            ; Emit it
 
 :global_load_done
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:global_load_string_0  "LOAD_IMMEDIATE_eax &GLOBAL_"
+:global_load_string_0  "mov_eax, &GLOBAL_"
 :global_load_string_1  "
 "
-:global_load_string_2  "LOAD_INTEGER
+:global_load_string_2  "mov_eax,[eax]
 "
 
 
@@ -3335,7 +3335,7 @@ LOAD_INTEGER
 ;; Returns nothing
 ;; Simply uses current global token to update output and then steps to next global_token
 :primary_expr_number
-	LOADI32_EAX &primary_expr_number_string_0   ; Using "LOAD_IMMEDIATE_eax %"
+	LOADI32_EAX &primary_expr_number_string_0   ; Using "mov_eax, %"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &global_token         ; Using global_token
@@ -3350,7 +3350,7 @@ LOAD_INTEGER
 	STORE32_Absolute32_eax &global_token        ; global_token = global_token->NEXT
 	RETURN
 
-:primary_expr_number_string_0  "LOAD_IMMEDIATE_eax %"
+:primary_expr_number_string_0  "mov_eax, %"
 :primary_expr_number_string_1  "
 "
 
@@ -3371,7 +3371,7 @@ LOAD_INTEGER
 	ADDI8_EBX !1                                ; current_count + 1
 	STORE32_Absolute32_ebx &current_count       ; current_count = current_count + 1
 
-	LOADI32_EAX &primary_expr_string_string_0   ; Using "LOAD_IMMEDIATE_eax &STRING_"
+	LOADI32_EAX &primary_expr_string_string_0   ; Using "mov_eax, &STRING_"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &function             ; Using function
@@ -3405,7 +3405,7 @@ LOAD_INTEGER
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:primary_expr_string_string_0  "LOAD_IMMEDIATE_eax &STRING_"
+:primary_expr_string_string_0  "mov_eax, &STRING_"
 :primary_expr_string_string_1  ":STRING_"
 
 
@@ -3416,7 +3416,7 @@ LOAD_INTEGER
 :primary_expr_char
 	PUSH_EBX                                    ; Protect EBX
 	PUSH_ECX                                    ; Protect ECX
-	LOADI32_EAX &primary_expr_char_string_0     ; Using "LOAD_IMMEDIATE_eax %"
+	LOADI32_EAX &primary_expr_char_string_0     ; Using "mov_eax, %"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &global_token         ; Using global token
@@ -3436,7 +3436,7 @@ LOAD_INTEGER
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:primary_expr_char_string_0  "LOAD_IMMEDIATE_eax %"
+:primary_expr_char_string_0  "mov_eax, %"
 :primary_expr_char_string_1  "
 "
 
@@ -3563,7 +3563,7 @@ LOAD_INTEGER
 :common_recursion
 	PUSH_EBX                                    ; Protect EBX
 	COPY_EAX_to_EBX                             ; Put FUNCTION F safely out of the way
-	LOADI32_EAX &common_recursion_string_0      ; Using "PUSH_eax\t#_common_recursion\n"
+	LOADI32_EAX &common_recursion_string_0      ; Using "push_eax\t#_common_recursion\n"
 	CALL32 %emit_out                            ; Emit it
 
 	LOAD32_Absolute32_eax &global_token         ; Using global_token
@@ -3577,14 +3577,14 @@ LOAD_INTEGER
 	CALL32 %promote_type                        ; get the right type
 	STORE32_Absolute32_eax &current_target      ; Set new current_target
 
-	LOADI32_EAX &common_recursion_string_1      ; Using "POP_ebx\t# _common_recursion\n"
+	LOADI32_EAX &common_recursion_string_1      ; Using "pop_ebx\t# _common_recursion\n"
 	CALL32 %emit_out                            ; Emit it
 	POP_EBX                                     ; Restore EBX
 	RETURN
 
-:common_recursion_string_0  "PUSH_eax	#_common_recursion
+:common_recursion_string_0  "push_eax	#_common_recursion
 "
-:common_recursion_string_1  "POP_ebx	# _common_recursion
+:common_recursion_string_1  "pop_ebx	# _common_recursion
 "
 
 
