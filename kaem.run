@@ -30,6 +30,7 @@ ENDIAN_FLAG="--little-endian"
 BINDIR="../${ARCH_DIR}/bin"
 BUILDDIR="../${ARCH_DIR}/artifact"
 TMPDIR="${BUILDDIR}"
+OPERATING_SYSTEM="Linux"
 
 ################################################
 # Phase 12-15 Rebuild M2-Planet from C sources #
