@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Build with:
-# as --32 kaem-minimal.S -o kaem-minimal.o 
-# ld -melf_i386 kaem-minimal.o -o kaem-optional 
+# as --32 kaem-minimal.S -o kaem-minimal.o
+# ld -melf_i386 kaem-minimal.o -o kaem-optional
 
 .intel_syntax noprefix
 .global _start
