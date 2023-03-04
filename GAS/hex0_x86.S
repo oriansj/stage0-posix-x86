@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: 2017 Jeremiah Orians
-# SPDX-FileCopyrightText: 2022 Andrius Štikonas
+# SPDX-FileCopyrightText: © 2017 Jeremiah Orians
+# SPDX-FileCopyrightText: © 2022 Andrius Štikonas
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
