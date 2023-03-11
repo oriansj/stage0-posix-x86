@@ -1,113 +1,101 @@
-;; Copyright (C) 2019 Jeremiah Orians
-;; This file is part of mescc-tools.
-;;
-;; mescc-tools is free software: you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
-;;
-;; mescc-tools is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with mescc-tools. If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: © 2019 Jeremiah Orians
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-	;; Register usage:
-	;; EBP => OUTPUT
-	;; EDI => Buffer
-	;; ESI => INPUT
+	# Register usage:
+	# EBP => OUTPUT
+	# EDI => Buffer
+	# ESI => INPUT
 
-; Where the ELF Header is going to hit
-; Simply jump to _start
-; Our main function
+DEFINE add_ebx, 81C3
+DEFINE cmp_eax, 3D
+DEFINE int CD
+DEFINE mov_cx, 66B9
+DEFINE mov_dx, 66BA
+DEFINE mov_edx, BA
+DEFINE mov_ebp,eax 89C5
+DEFINE mov_ebx,ebp 89EB
+DEFINE mov_ebx,esi 89F3
+DEFINE mov_ecx,edi 89F9
+DEFINE mov_ebx,edi 89FB
+DEFINE mov_edi,eax 89C7
+DEFINE mov_edx,eax 89C2
+DEFINE mov_esi,eax 89C6
+DEFINE push 6A
+DEFINE pop_eax 58
+DEFINE pop_ebx 5B
+DEFINE push_eax 50
+DEFINE je 74
+DEFINE jmp EB
+DEFINE xor_ebx,ebx 31DB
+DEFINE xor_ecx,ecx 31C9
+DEFINE xor_edx,edx 31D2
+DEFINE test_ebx,ebx 85DB
 
-DEFINE INT_80 CD80
-DEFINE LOADI16_CX 66B9
-DEFINE LOADI16_DX 66BA
-DEFINE LOADI32_EDX BA
-DEFINE PUSH 6A
-DEFINE POP_EAX 58
-DEFINE POP_EBX 5B
-DEFINE PUSH_EAX 50
-DEFINE COPY_EDI_to_ECX 89F9
-DEFINE ADDI32_EBX 81C3
-DEFINE JE8 74
-DEFINE JMP8 EB
-DEFINE CMPI32_EAX 3D
-DEFINE COPY_EBP_to_EBX 89EB
-DEFINE COPY_EAX_to_EDX 89C2
-DEFINE COPY_ESI_to_EBX 89F3
-DEFINE COPY_EAX_to_ESI 89C6
-DEFINE COPY_EDI_to_EBX 89FB
-DEFINE COPY_EAX_to_EDI 89C7
-DEFINE COPY_EAX_to_EBP 89C5
-DEFINE XOR_EBX_EBX 31DB
-DEFINE XOR_ECX_ECX 31C9
-DEFINE XOR_EDX_EDX 31D2
-DEFINE TEST_EBX_EBX 85DB
+# Where the ELF Header is going to hit
+# Simply jump to _start
+# Our main function
 
 :_start
-	POP_EAX                     ; Get the number of arguments
-	POP_EBX                     ; Get the program name
-	POP_EBX                     ; Get the actual output name
-	LOADI16_CX @577             ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-	LOADI16_DX @384             ; Prepare file as RW for owner only (600 in octal)
-	PUSH !5                     ; prepare to set eax to 5
-	POP_EAX                     ; the syscall number for open()
-	INT_80                      ; Now open that file
-	COPY_EAX_to_EBP             ; Preserve the file pointer we were given
+	pop_eax                     # Get the number of arguments
+	pop_ebx                     # Get the program name
+	pop_ebx                     # Get the actual output name
+	mov_cx, @577                # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+	mov_dx, @384                # Prepare file as RW for owner only (600 in octal)
+	push !5                     # prepare to set eax to 5
+	pop_eax                     # the syscall number for open()
+	int !0x80                   # Now open that file
+	mov_ebp,eax                 # Preserve the file pointer we were given
 
-	PUSH !45
-	POP_EAX                     ; the Syscall # for SYS_BRK
-	XOR_EBX_EBX                 ; Get current brk
-	INT_80                      ; Let the kernel do the work
-	COPY_EAX_to_EDI             ; Set our malloc pointer
+	push !45
+	pop_eax                     # the Syscall # for SYS_BRK
+	xor_ebx,ebx                 # Get current brk
+	int !0x80                   # Let the kernel do the work
+	mov_edi,eax                 # Set our malloc pointer
 
-	PUSH !45
-	POP_EAX                     ; the Syscall # for SYS_BRK
-	COPY_EDI_to_EBX             ; Using current pointer
-	ADDI32_EBX %0x100000        ; Allocate 1MB
-	INT_80                      ; Let the kernel do the work
+	push !45
+	pop_eax                     # the Syscall # for SYS_BRK
+	mov_ebx,edi                 # Using current pointer
+	add_ebx, %0x100000          # Allocate 1MB
+	int !0x80                   # Let the kernel do the work
 
 :core
-	POP_EBX                     ; Get the actual input name
-	TEST_EBX_EBX                ; Check for null string
-	JE8 !done                   ; Hit null be done
+	pop_ebx                     # Get the actual input name
+	test_ebx,ebx                # Check for null string
+	je !done                    # Hit null be done
 
-	XOR_ECX_ECX                 ; prepare read_only
-	XOR_EDX_EDX                 ; prevent any interactions
-	PUSH !5
-	POP_EAX                     ; the syscall number for open()
-	INT_80                      ; Now open that damn file
-	COPY_EAX_to_ESI             ; Protect INPUT
+	xor_ecx,ecx                 # prepare read_only
+	xor_edx,edx                 # prevent any interactions
+	push !5
+	pop_eax                     # the syscall number for open()
+	int !0x80                   # Now open that damn file
+	mov_esi,eax                 # Protect INPUT
 :keep
-	LOADI32_EDX %0x100000       ; set the size of chars we want
-	COPY_EDI_to_ECX             ; Where to put it
-	COPY_ESI_to_EBX             ; Where are we reading from
-	PUSH !3
-	POP_EAX                     ; the syscall number for read
-	INT_80                      ; call the Kernel
-	PUSH_EAX                    ; Protect the number of bytes read
+	mov_edx, %0x100000          # set the size of chars we want
+	mov_ecx,edi                 # Where to put it
+	mov_ebx,esi                 # Where are we reading from
+	push !3
+	pop_eax                     # the syscall number for read
+	int !0x80                   # call the Kernel
+	push_eax                    # Protect the number of bytes read
 
-	COPY_EAX_to_EDX             ; Number of bytes to write
-	COPY_EDI_to_ECX             ; What we are writing
-	COPY_EBP_to_EBX             ; Write to target file
-	PUSH !4
-	POP_EAX                     ; the syscall number for write
-	INT_80                      ; call the Kernel
+	mov_edx,eax                 # Number of bytes to write
+	mov_ecx,edi                 # What we are writing
+	mov_ebx,ebp                 # Write to target file
+	push !4
+	pop_eax                     # the syscall number for write
+	int !0x80                   # call the Kernel
 
-	POP_EAX                     ; Get bytes read
-	CMPI32_EAX %0x100000        ; Check if buffer was fully used
-	JE8 !keep                   ; Keep looping if was full
-	JMP8 !core                  ; Otherwise move to next file
+	pop_eax                     # Get bytes read
+	cmp_eax, %0x100000          # Check if buffer was fully used
+	je !keep                    # Keep looping if was full
+	jmp !core                   # Otherwise move to next file
 
 :done
-	; program completed Successfully
-	XOR_EBX_EBX                 ; All is well
-	PUSH !1
-	POP_EAX                     ; put the exit syscall number in eax
-	INT_80                      ; Call it a good day
+	# program completed Successfully
+	xor_ebx,ebx                 # All is well
+	push !1
+	pop_eax                     # put the exit syscall number in eax
+	int !0x80                   # Call it a good day
 
 :ELF_end
