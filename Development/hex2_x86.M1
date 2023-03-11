@@ -1,654 +1,649 @@
-;; Copyright (C) 2017 Jeremiah Orians
-;; This file is part of stage0.
-;;
-;; stage0 is free software: you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
-;;
-;; stage0 is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with stage0.  If not, see <http://www.gnu.org/licenses/>.
+# SPDX-FileCopyrightText: © 2017 Jeremiah Orians
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-	;; Register usage:
-	;; EAX, EDX, ECX, EBX => Temps
-	;; EDI => IP
-	;; EBP => MALLOC
-	;; ESI => HEAD
+	# Register usage:
+	# EAX, EDX, ECX, EBX => Temps
+	# EDI => IP
+	# EBP => MALLOC
+	# ESI => HEAD
 
-	;; Struct format: (size 24)
-	;; NEXT => 0
-	;; TARGET => 8
-	;; NAME => 16
+	# Struct format: (size 24)
+	# NEXT => 0
+	# TARGET => 8
+	# NAME => 16
 
-; Where the ELF Header is going to hit
-; Simply jump to _start
-; Our main function
+DEFINE add_ebp, 83C5
+DEFINE add_ebx, 83C3
+DEFINE add_ecx, 83C1
+DEFINE add_edi, 83C7
+DEFINE add_edx, 83C2
+DEFINE addd_ebx, 81C3
+DEFINE add_eax,[DWORD] 0305
+DEFINE call E8
+DEFINE cmp_al,bl 38D8
+DEFINE cmp_al, 3C
+DEFINE cmp_eax, 83F8
+DEFINE cmp_ebx, 83FB
+DEFINE cmp_ecx, 83F9
+DEFINE cmp_esi, 83FE
+DEFINE int CD
+DEFINE je 0F84
+DEFINE jg 0F8F
+DEFINE jl 0F8C
+DEFINE jmp E9
+DEFINE jne 0F85
+DEFINE mov_eax, B8
+DEFINE mov_ebx, BB
+DEFINE mov_ecx, B9
+DEFINE mov_edi, BF
+DEFINE mov_edx, BA
+DEFINE mov_esi, BE
+DEFINE mov_eax,ebp 89E8
+DEFINE mov_ebp,eax 89C5
+DEFINE mov_ebp,ebx 89DD
+DEFINE mov_ebx,eax 89C3
+DEFINE mov_ebx,ebp 89EB
+DEFINE mov_edx,eax 89C2
+DEFINE mov_edx,edi 89FA
+DEFINE mov_esi,eax 89C6
+DEFINE mov_al,[ecx] 8A01
+DEFINE mov_bl,[edx] 8A1A
+DEFINE mov_ecx,[ebx] 8B0B
+DEFINE mov_esi,[esi] 8B36
+DEFINE mov_[eax],esi 8930
+DEFINE mov_[ebx],al 8803
+DEFINE mov_[ebx],ecx 890B
+DEFINE mov_[DWORD],al A2
+DEFINE mov_[DWORD],eax A3
+DEFINE mov_al,[DWORD] A0
+DEFINE mov_eax,[DWORD] A1
+DEFINE mov_ebx,[DWORD] 8B1D
+DEFINE mov_[eax+BYTE],edi 8978
+DEFINE mov_[esi+BYTE],ebp 896E
+DEFINE mov_eax,[esi+BYTE] 8B46
+DEFINE mov_edx,[esi+BYTE] 8B56
+DEFINE movzx_eax,al 0FB6C0
+DEFINE movzx_ebx,bl 0FB6DB
+DEFINE not_eax F7D0
+DEFINE pop_eax 58
+DEFINE pop_ebx 5B
+DEFINE pop_ecx 59
+DEFINE pop_edi 5F
+DEFINE pop_edx 5A
+DEFINE pop_esi 5E
+DEFINE push_eax 50
+DEFINE push_ebx 53
+DEFINE push_ecx 51
+DEFINE push_edi 57
+DEFINE push_edx 52
+DEFINE push_esi 56
+DEFINE ret C3
+DEFINE shl_eax, C1E0
+DEFINE sub_eax, 83E8
+DEFINE sub_eax,edx 29D0
+DEFINE test_eax,eax 85C0
 
-DEFINE ADD32_Absolute32_eax 0305
-DEFINE ADDI32_EBX 81C3
-DEFINE ADDI8_EBP 83C5
-DEFINE ADDI8_EBX 83C3
-DEFINE ADDI8_ECX 83C1
-DEFINE ADDI8_EDI 83C7
-DEFINE ADDI8_EDX 83C2
-DEFINE CALL32 E8
-DEFINE CMP_al_bl 38D8
-DEFINE CMPI8_al 3C
-DEFINE CMPI8_EAX 83F8
-DEFINE CMPI8_EBX 83FB
-DEFINE CMPI8_ECX 83F9
-DEFINE CMPI8_ESI 83FE
-DEFINE COPY_EAX_to_EBP 89C5
-DEFINE COPY_EAX_to_EBX 89C3
-DEFINE COPY_EAX_to_EDX 89C2
-DEFINE COPY_EAX_to_ESI 89C6
-DEFINE COPY_EBP_to_EAX 89E8
-DEFINE COPY_EBP_to_EBX 89EB
-DEFINE COPY_EBX_to_EBP 89DD
-DEFINE COPY_EDI_to_EDX 89FA
-DEFINE INT_80 CD80
-DEFINE JE32 0F84
-DEFINE JG32 0F8F
-DEFINE JL32 0F8C
-DEFINE JMP32 E9
-DEFINE JNE32 0F85
-DEFINE LEA32_ECX_from_esp 8D0C24
-DEFINE LOAD32_Absolute32_eax A1
-DEFINE LOAD32_Absolute32_ebx 8B1D
-DEFINE LOAD8_Absolute32_al A0
-DEFINE LOAD32_ECX_from_EBX 8B0B
-DEFINE LOAD32_ESI_from_ESI 8B36
-DEFINE LOAD32_EAX_from_ESI_Immediate8 8B46
-DEFINE LOAD32_EDX_from_ESI_Immediate8 8B56
-DEFINE LOAD8_al_from_ECX 8A01
-DEFINE LOAD8_bl_from_EDX 8A1A
-DEFINE LOADI32_EAX B8
-DEFINE LOADI32_EBX BB
-DEFINE LOADI32_ECX B9
-DEFINE LOADI32_EDI BF
-DEFINE LOADI32_EDX BA
-DEFINE LOADI32_ESI BE
-DEFINE MOVZX_al 0FB6C0
-DEFINE MOVZX_bl 0FB6DB
-DEFINE NOT_EAX F7D0
-DEFINE NULL 00000000
-DEFINE POP_EAX 58
-DEFINE POP_EBX 5B
-DEFINE POP_ECX 59
-DEFINE POP_EDI 5F
-DEFINE POP_EDX 5A
-DEFINE POP_ESI 5E
-DEFINE PUSH_EAX 50
-DEFINE PUSH_EBX 53
-DEFINE PUSH_ECX 51
-DEFINE PUSH_EDI 57
-DEFINE PUSH_EDX 52
-DEFINE PUSH_ESI 56
-DEFINE RET C3
-DEFINE SHLI8_EAX C1E0
-DEFINE STORE32_Absolute32_eax A3
-DEFINE STORE32_ECX_into_Address_EBX 890B
-DEFINE STORE32_EDI_into_Address_EAX_Immediate8 8978
-DEFINE STORE32_EBP_into_Address_ESI_Immediate8 896E
-DEFINE STORE32_ESI_into_Address_EAX 8930
-DEFINE STORE8_Absolute32_al A2
-DEFINE STORE8_al_into_Address_EBX 8803
-DEFINE SUBI8_EAX 83E8
-DEFINE SUB_EDX_from_EAX 29D0
-DEFINE TEST 85C0
-
+# Where the ELF Header is going to hit
+# Simply jump to _start
+# Our main function
 
 :_start
-	LOADI32_EBX %0              ; Get current pointer
-	CALL32 %malloc              ; Get current HEAP
-	COPY_EAX_to_EBX             ; Using current
-	COPY_EAX_to_EBP             ; Setup MALLOC
-	ADDI32_EBX %12582912        ; Create space for temp [12M]
-	CALL32 %malloc              ; Give ourselves 8192000 bytes to work with
+	mov_ebx, %0                 # Get current pointer
+	call %malloc                # Get current HEAP
+	mov_ebx,eax                 # Using current
+	mov_ebp,eax                 # Setup MALLOC
+	addd_ebx, %12582912         # Create space for temp [12M]
+	call %malloc                # Give ourselves 8192000 bytes to work with
 
-	POP_EAX                     ; Get the number of arguments
-	POP_EBX                     ; Get the program name
-	POP_EBX                     ; Get the actual input name
-	LOADI32_ECX %0              ; prepare read_only
-	LOADI32_EDX %0              ; Really sure
-	LOADI32_EAX %5              ; the syscall number for open()
-	INT_80                      ; Now open that damn file
-	STORE32_Absolute32_eax &Input ; Preserve the file pointer we were given
+	pop_eax                     # Get the number of arguments
+	pop_ebx                     # Get the program name
+	pop_ebx                     # Get the actual input name
+	mov_ecx, %0                 # prepare read_only
+	mov_edx, %0                 # Really sure
+	mov_eax, %5                 # the syscall number for open()
+	int !0x80                   # Now open that damn file
+	mov_[DWORD],eax &Input      # Preserve the file pointer we were given
 
-	POP_EBX                     ; Get the actual output name
-	LOADI32_ECX %577            ; Prepare file as O_WRONLY|O_CREAT|O_TRUNC
-	LOADI32_EDX %448            ; Prepare file as RWX for owner only (700 in octal)
-	LOADI32_EAX %5              ; the syscall number for open()
-	INT_80                      ; Now open that damn file
-	CMPI8_EAX !0                ; Check for missing output
-	JG32 %_start_out            ; Have real input
-	LOADI32_EAX %1              ; Use stdout
+	pop_ebx                     # Get the actual output name
+	mov_ecx, %577               # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
+	mov_edx, %448               # Prepare file as RWX for owner only (700 in octal)
+	mov_eax, %5                 # the syscall number for open()
+	int !0x80                   # Now open that damn file
+	cmp_eax, !0                 # Check for missing output
+	jg %_start_out              # Have real input
+	mov_eax, %1                 # Use stdout
 
 :_start_out
-	STORE32_Absolute32_eax &Output ; Preserve the file pointer we were given
+	mov_[DWORD],eax &Output     # Preserve the file pointer we were given
 
+	call %ClearScratch          # Zero scratch
+	mov_eax, %-1                # Our flag for byte processing
+	mov_[DWORD],eax &Flag       # Set
+	mov_eax, %0                 # temp storage for the sum
+	mov_[DWORD],eax &High       # Set
+	mov_edi, %0x8048000         # Our starting IP
+	mov_esi, %0                 # HEAD = NULL
+	call %First_pass            # Process it
 
-	CALL32 %ClearScratch        ; Zero scratch
-	LOADI32_EAX %-1             ; Our flag for byte processing
-	STORE32_Absolute32_eax &Flag ; Set
-	LOADI32_EAX %0              ; temp storage for the sum
-	STORE32_Absolute32_eax &High ; Set
-	LOADI32_EDI %0x8048000      ; Our starting IP
-	LOADI32_ESI %0              ; HEAD = NULL
-	CALL32 %First_pass          ; Process it
+	# rewind input file
+	mov_ebx,[DWORD] &Input      # Using our input file
+	mov_ecx, %0                 # Offset Zero
+	mov_edx, %0                 # Whence Zero
+	mov_eax, %19                # lseek
+	push_esi                    # Protect HEAD
+	int !0x80
+	pop_esi                     # Restore HEAD
 
-	; rewind input file
-	LOAD32_Absolute32_ebx &Input ; Using our input file
-	LOADI32_ECX %0              ; Offset Zero
-	LOADI32_EDX %0              ; Whence Zero
-	LOADI32_EAX %19             ; lseek
-	PUSH_ESI                    ; Protect HEAD
-	INT_80
-	POP_ESI                     ; Restore HEAD
+	mov_eax, %-1                # Our flag for byte processing
+	mov_[DWORD],eax &Flag       # Set
+	mov_eax, %0                 # temp storage for the sum
+	mov_[DWORD],eax &High       # Set
+	mov_edi, %0x8048000         # Our starting IP
+	call %Second_pass           # Process it
 
-	LOADI32_EAX %-1             ; Our flag for byte processing
-	STORE32_Absolute32_eax &Flag ; Set
-	LOADI32_EAX %0              ; temp storage for the sum
-	STORE32_Absolute32_eax &High ; Set
-	LOADI32_EDI %0x8048000      ; Our starting IP
-	CALL32 %Second_pass         ; Process it
-
-	JMP32 %Done
+	jmp %Done
 
 :First_pass
-	CALL32 %Read_byte
+	call %Read_byte
 
-	; Deal with EOF
-	CMPI8_EAX !-4
-	JE32 %First_pass_done
+	# Deal with EOF
+	cmp_eax, !-4
+	je %First_pass_done
 
-	; Check for :
-	CMPI8_EAX !0x3A
-	JNE32 %First_pass_0
+	# Check for :
+	cmp_eax, !0x3A
+	jne %First_pass_0
 
-	; Deal with label
-	JMP32 %StoreLabel
+	# Deal with label
+	jmp %StoreLabel
 
 :First_pass_0
-	; Check for !
-	CMPI8_EAX !0x21
-	JE32 %First_pass_pointer
+	# Check for !
+	cmp_eax, !0x21
+	je %First_pass_pointer
 
-	; Check for @
-	CMPI8_EAX !0x40
-	JE32 %First_pass_pointer
+	# Check for @
+	cmp_eax, !0x40
+	je %First_pass_pointer
 
-	; Check for $
-	CMPI8_EAX !0x24
-	JE32 %First_pass_pointer
+	# Check for $
+	cmp_eax, !0x24
+	je %First_pass_pointer
 
-	; Check for %
-	CMPI8_EAX !0x25
-	JE32 %First_pass_pointer
+	# Check for %
+	cmp_eax, !0x25
+	je %First_pass_pointer
 
-	; Check for &
-	CMPI8_EAX !0x26
-	JE32 %First_pass_pointer
+	# Check for &
+	cmp_eax, !0x26
+	je %First_pass_pointer
 
-	; Deal with everything else
-	CALL32 %hex                 ; Process our char
+	# Deal with everything else
+	call %hex                   # Process our char
 
-	; Deal with EOF
-	CMPI8_EAX !-4
-	JE32 %First_pass_done
+	# Deal with EOF
+	cmp_eax, !-4
+	je %First_pass_done
 
-	; deal with -1 values
-	CMPI8_EAX !0
-	JL32 %First_pass
+	# deal with -1 values
+	cmp_eax, !0
+	jl %First_pass
 
-	; deal with toggle
-	LOAD32_Absolute32_eax &Flag
-	CMPI8_EAX !0
-	JE32 %First_pass_1
-	ADDI8_EDI !1                ; Increment IP
+	# deal with toggle
+	mov_eax,[DWORD] &Flag
+	cmp_eax, !0
+	je %First_pass_1
+	add_edi, !1                 # Increment IP
 
 :First_pass_1
-	NOT_EAX
-	STORE32_Absolute32_eax &Flag
-	JMP32 %First_pass
+	not_eax
+	mov_[DWORD],eax &Flag
+	jmp %First_pass
 
 :Update_Pointer
-	; Check for !
-	CMPI8_EAX !0x21
-	JE32 %Update_Pointer_1
+	# Check for !
+	cmp_eax, !0x21
+	je %Update_Pointer_1
 
-	; Check for @
-	CMPI8_EAX !0x40
-	JE32 %Update_Pointer_2
+	# Check for @
+	cmp_eax, !0x40
+	je %Update_Pointer_2
 
-	; Check for $
-	CMPI8_EAX !0x24
-	JE32 %Update_Pointer_2
+	# Check for $
+	cmp_eax, !0x24
+	je %Update_Pointer_2
 
-	; Check for %
-	CMPI8_EAX !0x25
-	JE32 %Update_Pointer_4
+	# Check for %
+	cmp_eax, !0x25
+	je %Update_Pointer_4
 
-	; Check for &
-	CMPI8_EAX !0x26
-	JE32 %Update_Pointer_4
+	# Check for &
+	cmp_eax, !0x26
+	je %Update_Pointer_4
 
-	;; deal with bad input
-	CALL32 %fail
+	# deal with bad input
+	call %fail
 
 :Update_Pointer_4
-	ADDI8_EDI !2                ; Increment IP
+	add_edi, !2                 # Increment IP
 :Update_Pointer_2
-	ADDI8_EDI !1                ; Increment IP
+	add_edi, !1                 # Increment IP
 :Update_Pointer_1
-	ADDI8_EDI !1                ; Increment IP
-	RET
+	add_edi, !1                 # Increment IP
+	ret
 
 :First_pass_pointer
-	; Deal with Pointer to label
-	CALL32 %Update_Pointer      ; Increment IP
-	LOADI32_EBX &table          ; Using scratch
-	CALL32 %consume_token       ; Read token
-	CALL32 %ClearScratch        ; Throw away token
-	CMPI8_EAX !0x3E             ; check for '>'
-	JNE32 %First_pass           ; Loop again
+	# Deal with Pointer to label
+	call %Update_Pointer        # Increment IP
+	mov_ebx, &table             # Using scratch
+	call %consume_token         # Read token
+	call %ClearScratch          # Throw away token
+	cmp_eax, !0x3E              # check for '>'
+	jne %First_pass             # Loop again
 
-	;; Deal with %label>label case
-	LOADI32_EBX &table          ; Write to scratch
-	CALL32 %consume_token       ; get token
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	JMP32 %First_pass           ; Loop again
+	# Deal with %label>label case
+	mov_ebx, &table             # Write to scratch
+	call %consume_token         # get token
+	call %ClearScratch          # Clean up after ourselves
+	jmp %First_pass             # Loop again
 
 :First_pass_done
-	RET
+	ret
 
 :hex
-	; deal with EOF
-	CMPI8_EAX !-4
-	JE32 %EOF
-	; deal with line comments starting with #
-	CMPI8_EAX !0x23
-	JE32 %ascii_comment
-	; deal with line comments starting with ;
-	CMPI8_EAX !0x3B
-	JE32 %ascii_comment
-	; deal all ascii less than 0
-	CMPI8_EAX !0x30
-	JL32 %ascii_other
-	; deal with 0-9
-	CMPI8_EAX !0x3A
-	JL32 %ascii_num
-	; deal with all ascii less than A
-	CMPI8_EAX !0x41
-	JL32 %ascii_other
-	; deal with A-F
-	CMPI8_EAX !0x47
-	JL32 %ascii_high
-	;deal with all ascii less than a
-	CMPI8_EAX !0x61
-	JL32 %ascii_other
-	;deal with a-f
-	CMPI8_EAX !0x67
-	JL32 %ascii_low
-	; The rest that remains needs to be ignored
-	JMP32 %ascii_other
+	# deal with EOF
+	cmp_eax, !-4
+	je %EOF
+	# deal with line comments starting with #
+	cmp_eax, !0x23
+	je %ascii_comment
+	# deal with line comments starting with ;
+	cmp_eax, !0x3B
+	je %ascii_comment
+	# deal all ascii less than 0
+	cmp_eax, !0x30
+	jl %ascii_other
+	# deal with 0-9
+	cmp_eax, !0x3A
+	jl %ascii_num
+	# deal with all ascii less than A
+	cmp_eax, !0x41
+	jl %ascii_other
+	# deal with A-F
+	cmp_eax, !0x47
+	jl %ascii_high
+	# deal with all ascii less than a
+	cmp_eax, !0x61
+	jl %ascii_other
+	# deal with a-f
+	cmp_eax, !0x67
+	jl %ascii_low
+	# The rest that remains needs to be ignored
+	jmp %ascii_other
 
 :Second_pass
-	CALL32 %Read_byte
+	call %Read_byte
 
-	; Deal with EOF
-	CMPI8_EAX !-4
-	JE32 %Second_pass_done
+	# Deal with EOF
+	cmp_eax, !-4
+	je %Second_pass_done
 
-	; Simply drop the label
-	CMPI8_EAX !0x3A
-	JNE32 %Second_pass_0
+	# Simply drop the label
+	cmp_eax, !0x3A
+	jne %Second_pass_0
 
-	LOADI32_EBX &table          ; Using scratch
-	CALL32 %consume_token       ; Read token
-	CALL32 %ClearScratch        ; Throw away token
+	mov_ebx, &table             # Using scratch
+	call %consume_token         # Read token
+	call %ClearScratch          # Throw away token
 
-	JMP32 %Second_pass
+	jmp %Second_pass
 
 :Second_pass_0
-	; Deal with % pointer
-	CMPI8_EAX !0x25
-	JE32 %StorePointer_rel4
+	# Deal with % pointer
+	cmp_eax, !0x25
+	je %StorePointer_rel4
 
-	; Deal with @ pointer
-	CMPI8_EAX !0x40
-	JE32 %StorePointer_rel2
+	# Deal with @ pointer
+	cmp_eax, !0x40
+	je %StorePointer_rel2
 
-	; Deal with ! pointer
-	CMPI8_EAX !0x21
-	JE32 %StorePointer_rel1
+	# Deal with ! pointer
+	cmp_eax, !0x21
+	je %StorePointer_rel1
 
-	; Deal with & pointer
-	CMPI8_EAX !0x26
-	JE32 %StorePointer_abs4
+	# Deal with & pointer
+	cmp_eax, !0x26
+	je %StorePointer_abs4
 
-	; Deal with $ pointer
-	CMPI8_EAX !0x24
-	JE32 %StorePointer_abs2
+	# Deal with $ pointer
+	cmp_eax, !0x24
+	je %StorePointer_abs2
 
 :Second_pass_1
-	; Deal with everything else
-	CALL32 %hex                 ; Process our char
+	# Deal with everything else
+	call %hex                   # Process our char
 
-	; Deal with EOF
-	CMPI8_EAX !-4
-	JE32 %Second_pass_done
+	# Deal with EOF
+	cmp_eax, !-4
+	je %Second_pass_done
 
-	; deal with -1 values
-	CMPI8_EAX !0
-	JL32 %Second_pass
+	# deal with -1 values
+	cmp_eax, !0
+	jl %Second_pass
 
-	; deal with toggle
-	LOAD32_Absolute32_ebx &Flag
-	CMPI8_EBX !0
-	JE32 %print
+	# deal with toggle
+	mov_ebx,[DWORD] &Flag
+	cmp_ebx, !0
+	je %print
 
-	; process first byte of pair
-	SHLI8_EAX !4
-	STORE32_Absolute32_eax &High
-	LOADI32_EAX %0
-	STORE32_Absolute32_eax &Flag
-	JMP32 %Second_pass
+	# process first byte of pair
+	shl_eax, !4
+	mov_[DWORD],eax &High
+	mov_eax, %0
+	mov_[DWORD],eax &Flag
+	jmp %Second_pass
 
 :Second_pass_done
-	RET
-
 :EOF
-	RET
+	ret
 :ascii_num
-	SUBI8_EAX !0x30
-	RET
+	sub_eax, !0x30
+	ret
 :ascii_low
-	SUBI8_EAX !0x57
-	RET
+	sub_eax, !0x57
+	ret
 :ascii_high
-	SUBI8_EAX !0x37
-	RET
+	sub_eax, !0x37
+	ret
 :ascii_other
-	LOADI32_EAX %-1
-	RET
+	mov_eax, %-1
+	ret
 :ascii_comment
-	CALL32 %Read_byte
-	CMPI8_EAX !0x0D
-	JE32 %ascii_comment_cr
-	CMPI8_EAX !0x0A
-	JNE32 %ascii_comment
+	call %Read_byte
+	cmp_eax, !0xD
+	je %ascii_comment_cr
+	cmp_eax, !0xA
+	jne %ascii_comment
 :ascii_comment_cr
-	LOADI32_EAX %-1
-	RET
+	mov_eax, %-1
+	ret
 
-; process second byte of pair
+# process second byte of pair
 :print
-	; update the sum and store in output
-	ADD32_Absolute32_eax &High
+	# update the sum and store in output
+	add_eax,[DWORD] &High
+	mov_[DWORD],al &table
 
-	; Print our first Hex
-	LOADI32_EDX %1              ; set the size of chars we want
-	CALL32 %print_chars
+	# Print our first Hex
+	mov_edx, %1                 # set the size of chars we want
+	call %print_chars
 
-	; flip the toggle
-	LOAD32_Absolute32_eax &Flag
-	NOT_EAX
-	STORE32_Absolute32_eax &Flag
+	# flip the toggle
+	mov_eax,[DWORD] &Flag
+	not_eax
+	mov_[DWORD],eax &Flag
 
-	ADDI8_EDI !1                ; Increment IP
-	JMP32 %Second_pass
+	add_edi, !1                 # Increment IP
+	jmp %Second_pass
 
 :Done
-	; program completed Successfully
-	LOADI32_EBX %0              ; All is well
-	LOADI32_EAX %1              ; put the exit syscall number in eax
-	INT_80                      ; Call it a good day
+	# program completed Successfully
+	mov_ebx, %0                 # All is well
+	mov_eax, %1                 # put the exit syscall number in eax
+	int !0x80                   # Call it a good day
 
 
-;; Malloc isn't actually required if the program being built fits in the initial memory
-;; However, it doesn't take much to add it.
-;; Requires a value in EBX
+# Malloc isn't actually required if the program being built fits in the initial memory
+# However, it doesn't take much to add it.
+# Requires a value in EBX
 :malloc
-	LOADI32_EAX %45             ; the Syscall # for SYS_BRK
-	PUSH_ESI                    ; Protect esi
-	PUSH_EDI                    ; Protect edi
-	INT_80                      ; call the Kernel
-	POP_EDI                     ; Restore edi
-	POP_ESI                     ; Restore esi
-	RET
+	mov_eax, %45                # the Syscall # for SYS_BRK
+	push_esi                    # Protect esi
+	push_edi                    # Protect edi
+	int !0x80                   # call the Kernel
+	pop_edi                     # Restore edi
+	pop_esi                     # Restore esi
+	ret
 
 
 :Read_byte
-	PUSH_EDX                    ; Protect EDX
-	PUSH_ECX                    ; Protect ECX
-	PUSH_EBX                    ; Protect EBX
-	LOADI32_EAX %-4             ; Put EOF in eax
-	PUSH_EAX                    ; Assume bad (If nothing read, value will remain EOF)
-	LEA32_ECX_from_esp          ; Get stack address
-	LOAD32_Absolute32_ebx &Input ; Where are we reading from
-	LOADI32_EAX %3              ; the syscall number for read
-	LOADI32_EDX %1              ; set the size of chars we want
-	INT_80                      ; call the Kernel
-	TEST                        ; check what we got
-	POP_EAX                     ; Get either char or EOF
-	JE32 %Read_byte_1           ; Got EOF call it done
-	MOVZX_al                    ; We have to zero extend it to use it
-	POP_EBX                     ; Restore EBX
-	POP_ECX                     ; Restore ECX
-	POP_EDX                     ; Restore EDX
-	RET
+	# Attempt to read 1 byte from STDIN
+	push_esi                    # Protect esi
+	push_edi                    # Protect edi
+	push_ebx                    # Protect ebx
+	push_ecx                    # Protect ecx
 
-; Deal with EOF
+	mov_edx, %1                 # set the size of chars we want
+	mov_ecx, &write             # Where to put it
+	mov_ebx,[DWORD] &Input      # Where are we reading from
+	mov_eax, %3                 # the syscall number for read
+	int !0x80                   # call the Kernel
+
+	pop_ecx                     # Restore ecx
+	pop_ebx                     # Restore ebx
+	pop_edi                     # Restore edi
+	pop_esi                     # Restore esi
+
+	test_eax,eax                # check what we got
+	je %Read_byte_1             # Got EOF call it done
+
+	# load byte
+	mov_al,[DWORD] &write       # load char
+	movzx_eax,al                # We have to zero extend it to use it
+	ret
+
+# Deal with EOF
 :Read_byte_1
-	POP_EBX                     ; Restore EBX
-	POP_ECX                     ; Restore ECX
-	POP_EDX                     ; Restore EDX
-	RET
+	mov_eax, %-4                # Put EOF in eax
+	ret
 
-;; receives bytes to write in EAX and number of bytes to write in EDX
 :print_chars
-	PUSH_EDX                    ; Protect EDX
-	PUSH_ECX                    ; protect ECX
-	PUSH_EBX                    ; protect EBX
-	PUSH_EAX                    ; We are writing eax
-	LEA32_ECX_from_esp          ; Get stack address
-	LOAD32_Absolute32_ebx &Output ; Write to target file
-	LOADI32_EAX %4              ; the syscall number for write
-	;; EDX contains the number of bytes to write
-	INT_80                      ; call the Kernel
-	POP_EAX                     ; Restore stack
-	POP_EBX                     ; Restore EBX
-	POP_ECX                     ; Restore ECX
-	POP_EDX                     ; Restore EDX
-	RET
+	push_esi                    # Protect esi
+	push_edi                    # Protect edi
+	push_ebx                    # Protect ebx
+	push_ecx                    # Protect ecx
 
-;; Receives pointer in EBX
-;; Writes out char and updates EBX
+	mov_ecx, &table             # What we are writing
+	mov_ebx,[DWORD] &Output     # Write to target file
+	mov_eax, %4                 # the syscall number for write
+	# edx contains the number of bytes to write
+	int !0x80                   # call the Kernel
+
+	pop_ecx                     # Restore ecx
+	pop_ebx                     # Restore ebx
+	pop_edi                     # Restore edi
+	pop_esi                     # Restore esi
+	ret
+
+# Receives pointer in EBX
+# Writes out char and updates EBX
 :consume_token
-	CALL32 %Read_byte           ; Consume_token
+	call %Read_byte             # Consume_token
 
-	; Check for \t
-	CMPI8_EAX !0x09
-	JE32 %consume_token_done
+	# Check for \t
+	cmp_eax, !0x09
+	je %consume_token_done
 
-	; Check for \n
-	CMPI8_EAX !0x0A
-	JE32 %consume_token_done
+	# Check for \n
+	cmp_eax, !0x0A
+	je %consume_token_done
 
-	; Check for ' '
-	CMPI8_EAX !0x20
-	JE32 %consume_token_done
+	# Check for ' '
+	cmp_eax, !0x20
+	je %consume_token_done
 
-	; Check for '>'
-	CMPI8_EAX !0x3E
-	JE32 %consume_token_done
+	# Check for '>'
+	cmp_eax, !0x3E
+	je %consume_token_done
 
-	;; Looks like we are still reading token
-	STORE8_al_into_Address_EBX  ; Store char
-	ADDI8_EBX !1                ; Point to next spot
-	JMP32 %consume_token        ; loop until done
+	# Looks like we are still reading token
+	mov_[ebx],al                # Store char
+	add_ebx, !1                 # Point to next spot
+	jmp %consume_token          # loop until done
 
 :consume_token_done
-	LOADI32_ECX %0              ; Pad with nulls
-	STORE32_ECX_into_Address_EBX
-	ADDI8_EBX !4
-	RET
+	mov_ecx, %0                 # Pad with nulls
+	mov_[ebx],ecx
+	add_ebx, !4
+	ret
 
 :StoreLabel
-	COPY_EBP_to_EAX             ; ENTRY
-	ADDI8_EBP !24               ; CALLOC
-	STORE32_EDI_into_Address_EAX_Immediate8 !8 ; ENTRY->TARGET = IP
-	STORE32_ESI_into_Address_EAX ; ENTRY->NEXT = JUMP_TABLE
-	COPY_EAX_to_ESI             ; JUMP_TABLE = ENTRY
-	STORE32_EBP_into_Address_ESI_Immediate8 !16 ; ENTRY->NAME = TOKEN
-	COPY_EBP_to_EBX             ; Write Starting after struct
-	CALL32 %consume_token       ; Collect whole string
-	COPY_EBX_to_EBP             ; Update HEAP
-	JMP32 %First_pass
+	mov_eax,ebp                 # ENTRY
+	add_ebp, !24                # CALLOC
+	mov_[eax+BYTE],edi !8       # ENTRY->TARGET = IP
+	mov_[eax],esi               # ENTRY->NEXT = JUMP_TABLE
+	mov_esi,eax                 # JUMP_TABLE = ENTRY
+	mov_[esi+BYTE],ebp !16      # ENTRY->NAME = TOKEN
+	mov_ebx,ebp                 # Write Starting after struct
+	call %consume_token         # Collect whole string
+	mov_ebp,ebx                 # Update HEAP
+	jmp %First_pass
 
 :GetTarget
-	PUSH_EBX                    ; protect ebx
-	PUSH_ECX                    ; protect ecx
-	PUSH_EDX                    ; protect edx
-	PUSH_ESI                    ; protect JUMP_TABLE
-	LOADI32_ECX &table          ; Reset scratch
-	LOAD32_EDX_from_ESI_Immediate8 !16 ; I->NAME
+	push_ebx                    # protect ebx
+	push_ecx                    # protect ecx
+	push_edx                    # protect edx
+	push_esi                    # protect JUMP_TABLE
+	mov_ecx, &table             # Reset scratch
+	mov_edx,[esi+BYTE] !16      # I->NAME
 :GetTarget_loop
-	LOAD8_al_from_ECX           ; I->NAME[0]
-	LOAD8_bl_from_EDX           ; scratch[0]
-	MOVZX_bl                    ; Zero extend
-	MOVZX_al                    ; Zero extend
-	CMP_al_bl                   ; IF TOKEN == I->NAME
-	JNE32 %GetTarget_miss       ; Oops
+	mov_al,[ecx]                # I->NAME[0]
+	mov_bl,[edx]                # scratch[0]
+	movzx_ebx,bl                # Zero extend
+	movzx_eax,al                # Zero extend
+	cmp_al,bl                   # IF TOKEN == I->NAME
+	jne %GetTarget_miss         # Oops
 
-	ADDI8_ECX !1
-	ADDI8_EDX !1
-	CMPI8_al !0
-	JNE32 %GetTarget_loop       ; Loop until
-	JMP32 %GetTarget_done       ; Match
+	add_ecx, !1
+	add_edx, !1
+	cmp_al, !0
+	jne %GetTarget_loop         # Loop until
+	jmp %GetTarget_done         # Match
 
-	;; Miss
+	# Miss
 :GetTarget_miss
-	LOAD32_ESI_from_ESI         ; I = I->NEXT
-	CMPI8_ESI !0                ; IF NULL == I
-	JE32 %fail                  ; Abort hard
+	mov_esi,[esi]               # I = I->NEXT
+	cmp_esi, !0                 # IF NULL == I
+	je %fail                    # Abort hard
 
-	LOAD32_EDX_from_ESI_Immediate8 !16 ; I->NAME
-	LOADI32_ECX &table          ; Reset scratch
-	JMP32 %GetTarget_loop
+	mov_edx,[esi+BYTE] !16      # I->NAME
+	mov_ecx, &table             # Reset scratch
+	jmp %GetTarget_loop
 
 :GetTarget_done
-	LOAD32_EAX_from_ESI_Immediate8 !8 ; Get address
-	POP_ESI                     ; Restore JUMP_TABLE
-	POP_EDX                     ; Restore EDX
-	POP_ECX                     ; Restore ECX
-	POP_EBX                     ; Restore EBX
-	RET
+	mov_eax,[esi+BYTE] !8       # Get address
+	pop_esi                     # Restore JUMP_TABLE
+	pop_edx                     # Restore edx
+	pop_ecx                     # Restore ecx
+	pop_ebx                     # Restore ebx
+	ret
 
 :ClearScratch
-	PUSH_EAX                    ; Protect against changes
-	PUSH_EBX                    ; And overwrites
-	PUSH_ECX                    ; While we work
-	LOADI32_EBX &table          ; Where our table is
-	LOADI32_EAX %0              ; Using null
+	push_eax                    # Protect against changes
+	push_ebx                    # And overwrites
+	push_ecx                    # While we work
+	mov_ebx, &table             # Where our table is
+	mov_eax, %0                 # Using null
 
 :ClearScratch_loop
-	LOAD32_ECX_from_EBX         ; Get current value
-	STORE8_al_into_Address_EBX  ; Because we want null
-	ADDI8_EBX !1                ; Increment
-	CMPI8_ECX !0                ; Check if we hit null
-	JNE32 %ClearScratch_loop    ; Keep looping
+	mov_ecx,[ebx]               # Get current value
+	mov_[ebx],al                # Because we want null
+	add_ebx, !1                 # Increment
+	cmp_ecx, !0                 # Check if we hit null
+	jne %ClearScratch_loop      # Keep looping
 
-	POP_ECX                     ; Restore
-	POP_EBX                     ; Damage
-	POP_EAX                     ; Entirely
-	RET
+	pop_ecx                     # Restore
+	pop_ebx                     # Damage
+	pop_eax                     # Entirely
+	ret
 
 :StorePointer
-	CALL32 %Update_Pointer      ; Increment IP
-	LOADI32_EBX &table          ; Write to scratch
-	CALL32 %consume_token       ; get token
-	PUSH_EAX                    ; Protect base_sep_p
-	LOADI32_EAX &table          ; Pointer to scratch
-	CALL32 %GetTarget           ; Get address of pointer
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	COPY_EDI_to_EDX             ; base = IP
-	POP_EBX                     ; Restore base_sep_p
-	CMPI8_EBX !0x3E             ; If base_sep_p == '>'
-	JNE32 %StorePointer_done    ; If not
+	call %Update_Pointer        # Increment IP
+	mov_ebx, &table             # Write to scratch
+	call %consume_token         # get token
+	push_eax                    # Protect base_sep_p
+	mov_eax, &table             # Pointer to scratch
+	call %GetTarget             # Get address of pointer
+	call %ClearScratch          # Clean up after ourselves
+	mov_edx,edi                 # base = IP
+	pop_ebx                     # Restore base_sep_p
+	cmp_ebx, !0x3E              # If base_sep_p == '>'
+	jne %StorePointer_done      # If not
 
-	;; Deal with %label>label case
-	PUSH_EAX                    ; We need to preserve main target
-	LOADI32_EBX &table          ; Write to scratch
-	CALL32 %consume_token       ; get token
-	LOADI32_EAX &table          ; Pointer to scratch
-	CALL32 %GetTarget           ; Get address of pointer
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	COPY_EAX_to_EDX             ; Use our new base
-	POP_EAX                     ; Restore main target
+	# Deal with %label>label case
+	push_eax                    # We need to preserve main target
+	mov_ebx, &table             # Write to scratch
+	call %consume_token         # get token
+	mov_eax, &table             # Pointer to scratch
+	call %GetTarget             # Get address of pointer
+	call %ClearScratch          # Clean up after ourselves
+	mov_edx,eax                 # Use our new base
+	pop_eax                     # Restore main target
 
 :StorePointer_done
-	RET
+	ret
 
 :StorePointer_rel4
-	CALL32 %StorePointer        ; Do Common
-	SUB_EDX_from_EAX            ; target - ip
-	LOADI32_EDX %4              ; set the size of chars we want
-	CALL32 %print_chars
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	JMP32 %Second_pass
+	call %StorePointer          # Do Common
+	sub_eax,edx                 # target - ip
+	mov_[DWORD],eax &table      # put value in output
+	mov_edx, %4                 # set the size of chars we want
+	call %print_chars
+	call %ClearScratch          # Clean up after ourselves
+	jmp %Second_pass
 
 :StorePointer_rel2
-	CALL32 %StorePointer        ; Do Common
-	SUB_EDX_from_EAX            ; target - ip
-	LOADI32_EDX %2              ; set the size of chars we want
-	CALL32 %print_chars
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	JMP32 %Second_pass
+	call %StorePointer          # Do Common
+	sub_eax,edx                 # target - ip
+	mov_[DWORD],eax &table      # put value in output
+	mov_edx, %2                 # set the size of chars we want
+	call %print_chars
+	call %ClearScratch          # Clean up after ourselves
+	jmp %Second_pass
 
 :StorePointer_rel1
-	CALL32 %StorePointer        ; Do Common
-	SUB_EDX_from_EAX            ; target - ip
-	LOADI32_EDX %1              ; set the size of chars we want
-	CALL32 %print_chars
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	JMP32 %Second_pass
+	call %StorePointer          # Do Common
+	sub_eax,edx                 # target - ip
+	mov_[DWORD],eax &table      # put value in output
+	mov_edx, %1                 # set the size of chars we want
+	call %print_chars
+	call %ClearScratch          # Clean up after ourselves
+	jmp %Second_pass
 
 :StorePointer_abs4
-	CALL32 %StorePointer        ; Do Common
-	LOADI32_EDX %4              ; set the size of chars we want
-	CALL32 %print_chars
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	JMP32 %Second_pass
+	call %StorePointer          # Do Common
+	mov_[DWORD],eax &table      # put value in output
+	mov_edx, %4                 # set the size of chars we want
+	call %print_chars
+	call %ClearScratch          # Clean up after ourselves
+	jmp %Second_pass
 
 :StorePointer_abs2
-	CALL32 %StorePointer        ; Do Common
-	LOADI32_EDX %2              ; set the size of chars we want
-	CALL32 %print_chars
-	CALL32 %ClearScratch        ; Clean up after ourselves
-	JMP32 %Second_pass
+	call %StorePointer          # Do Common
+	mov_[DWORD],eax &table      # put value in output
+	mov_edx, %2                 # set the size of chars we want
+	call %print_chars
+	call %ClearScratch          # Clean up after ourselves
+	jmp %Second_pass
 
 :fail
-	; Some shit went wrong
-	LOADI32_EBX %1              ; All is wrong
-	LOADI32_EAX %1              ; put the exit syscall number in eax
-	INT_80                      ; Call it a good day
+	# Something went wrong
+	mov_ebx, %1                 # All is wrong
+	mov_eax, %1                 # put the exit syscall number in eax
+	int !0x80                   # Call it a good day
 
 :ELF_data
 :High
-	NULL
+	%0
 :Flag
-	NULL
+	%0
 :Input
-	NULL
+	%0
 :Output
-	NULL
+	%0
+:write
+	%0
 :table
-	NULL
+	%0
 :ELF_end
