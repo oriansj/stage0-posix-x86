@@ -2,24 +2,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-	# Register usage:
-	# EAX, ECX, EBX => Temps
-	# EDI => MALLOC
-	# EBP => HEAD
-	# [Output] => Output_file
-	# [Input] => Input_file
-
-	# Struct format: (size 32)
-	# NEXT => 0
-	# TYPE => 8
-	# TEXT => 16
-	# EXPRESSION => 24
-
-	# Types
-	# None => 0
-	# MACRO => 1
-	# STRING => 2
-
 DEFINE add_al, 04
 DEFINE add_eax, 83C0
 DEFINE add_ebx, 83C3
@@ -123,6 +105,24 @@ DEFINE shl_eax, C1E0
 DEFINE shr_eax, C1E8
 DEFINE sub_ecx, 83E9
 DEFINE xchg_eax,ebx 93
+
+	# Register usage:
+	# EAX, ECX, EBX => Temps
+	# EDI => MALLOC
+	# EBP => HEAD
+	# [Output] => Output_file
+	# [Input] => Input_file
+
+	# Struct format: (size 32)
+	# NEXT => 0
+	# TYPE => 8
+	# TEXT => 16
+	# EXPRESSION => 24
+
+	# Types
+	# None => 0
+	# MACRO => 1
+	# STRING => 2
 
 # Where the ELF Header is going to hit
 # Simply jump to _start

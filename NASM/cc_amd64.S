@@ -925,7 +925,7 @@ statement_label:
 
 statement_local:
 	mov eax, ebx                ; put global_token->S in the right place
-	mov ebx, prim_types         ; pointer to primative types
+	mov ebx, prim_types         ; pointer to primitive types
 	call lookup_type            ; See if found
 	cmp eax, 0                  ; IF NULL == lookup_type(global_token->S, prim_types)
 	jne statement_local_success ; Sweet a new local
