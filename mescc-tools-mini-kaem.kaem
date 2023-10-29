@@ -122,7 +122,7 @@
 ./x86/artifact/hex2-0 ./x86/artifact/M1-macro-0-0.hex2 ./x86/artifact/M1-0
 
 # This is the last stage where catm will need to be used and the last stage where
-# M0 is used, as we will being using it's much more powerful and cross-platform
+# M0 is used, as we will being using its much more powerful and cross-platform
 # version with a bunch of extra goodies.
 
 #######################################
