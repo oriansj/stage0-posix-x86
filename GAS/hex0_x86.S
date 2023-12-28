@@ -156,7 +156,7 @@ Read_byte:
 	push edx                    # protect fout
 	push 1                      # prepare to set edx to 1
 	pop edx                     # set the size of chars we want
-	push ebx                    # allocate stack
+	push edi                    # allocate stack
 	mov ecx, esp                # Where to put it
 	mov ebx, esi                # Where are we reading from
 	push 3                      # prepare to set eax to 3

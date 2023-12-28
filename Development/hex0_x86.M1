@@ -26,7 +26,7 @@ DEFINE pop_ebx 5B
 DEFINE pop_ebp 5D
 DEFINE pop_edx 5A
 DEFINE push_eax 50
-DEFINE push_ebx 53
+DEFINE push_edi 57
 DEFINE push_edx 52
 DEFINE push 6A
 DEFINE ret C3
@@ -185,7 +185,7 @@ DEFINE xor_edx,edx 31D2
 	push_edx                    # protect fout
 	push !1                     # prepare to set edx to 1
 	pop_edx                     # set the size of chars we want
-	push_ebx                    # allocate stack
+	push_ebp                    # allocate stack
 	mov_ecx,esp                 # Where to put it
 	mov_ebx,esi                 # Where are we reading from
 	push !3                     # prepare to set eax to 3
