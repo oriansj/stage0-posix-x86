@@ -42,7 +42,7 @@
 00 80 04 08                     # ph_physaddr
 
 7D 05 00 00                     # ph_filesz
-7D 05 00 00                     # ph_memsz
+00 20 00 00                     # ph_memsz
 
 07 00 00 00                    # ph_flags: PF-X|PF-W|PF-R = 7
 01 00 00 00                    # ph_align
