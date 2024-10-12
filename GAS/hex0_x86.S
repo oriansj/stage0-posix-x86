@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: © 2017 Jeremiah Orians
 # SPDX-FileCopyrightText: © 2022 Andrius Štikonas
+# SPDX-FileCopyrightText: © 2024 Noah Goldstein
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -19,163 +20,92 @@ _start:
 	pop ebx                     # Get the program name
 	pop ebx                     # Get the actual input name
 	xor ecx, ecx                # prepare read_only, ecx = 0
-	xor edx, edx                # Extra sure, edx = 0
 	push 5                      # prepare to set eax to 5
 	pop eax                     # the syscall number for open()
+	cdq                         # Extra sure, edx = 0
 	int 0x80                    # Now open that damn file
-	mov esi, eax                # Preserve the file pointer we were given
-
 	pop ebx                     # Get the actual output name
+	push eax                    # Preserve the file pointer we were given
 	mov cx, 577                 # Prepare file as O_WRONLY|O_CREAT|O_TRUNC
 	mov dx, 448                 # Prepare file as RWX for owner only (700 in octal)
 	push 5                      # prepare to set eax to 5
 	pop eax                     # the syscall number for open()
 	int 0x80                    # Now open that damn file
-	mov edx, eax                # Preserve the file pointer we were given
+	cdq                         # edx = 0 since file descriptor is nonnegative
+	inc edx                     # edx = 1 (count for read/write)
+	xchg eax,edi                # Preserve outfile
 
-	# Our flag for byte processing
-	push -1
-	pop ebp                     # mov ebp, -1
+loop_reset_all:
+	xor ebp, ebp                # ebp = 0 (no prior hex val)
 
-	# temp storage for the sum
-	xor edi, edi                # edi = 0
-
+# Comment tracking is done with esi.
+# esi is decremented if we hit a
+# comment (';' or '#') and reset
+# if we hit a new-line.
+loop_reset_comment:
+	mov esi, edx                # Set no current comment
+loop_add_comment:
+	dec esi
 loop:
+
 	# Read a byte
-	call Read_byte
+	pop ebx                     # Get infile
+	mov ecx, esp                # Set buffer
+	# edx is already set to 1.
+	push 3
+	pop eax                     # Set read syscall in eax
+	int 0x80                    # Do the actual read
+	push ebx                    # Re-save infile
+	test eax, eax               # Check what we got
+	jne cont                    # No EOF
 
-	# process byte
-	call hex
+	# Exit successfully
+	inc eax                     # Set exit syscall in eax
+	xor ebx, ebx                # Set return success (ebx = 0)
+	int 0x80                    # Exit
 
-	# Deal with -1 values
-	test eax, eax
-	jl loop
+cont:
+	mov al,[ecx]                # Move prog byte in eax
 
-	# deal with toggle
-	test ebp, ebp               # jump if ebp >= 0
-	jge print
+	# New line check
+	cmp al, 10                  # Check new-line
+	je loop_reset_comment       # If new-line, end comment handling
 
-	# process first byte of pair
-	mov edi, eax
-	xor ebp, ebp                # ebp = 0
-	jmp loop
+	# In comment check
+	test esi, esi               # Skip byte if we are in a comment
+	jne loop
 
-# process second byte of pair
-print:
-	# update the sum and store in output
-	shl edi, 4
-	add eax, edi
+	# Start comment check
+	cmp al, 35                  # Start of '#' comment
+	je loop_add_comment
 
-	# flip the toggle
-	dec ebp                     # ebp = -1
+	cmp al, 59                  # Start of ';' comment
+	je loop_add_comment
 
-	call write_byte
+	# Start of hext str to int
+	sub al, 48                  # Subtract ascii '0' from al
+	sub al, 10                  # Check for value in '0'-'9'
+	jb write                    # We have hex value, write it
 
-	jmp loop
+	sub al, 7                   # Subtract ('A'-'0') from al
+	and al, ~32                 # Remove lower case bit
+	cmp al, 7                   # Check for value 'A'-'F'
+	jae loop                    # We have hex value, write it
 
-hex:
-	# Purge Comment Lines (#)
-	cmp al, 35
-	je purge_comment
+write:
+	shl ebp, 4                  # Shift up existing hex digit
+	add al, 10                  # Finish converting ascii to raw value
+	add ebp, eax                # Combine the hex digits
 
-	# Purge Comment Lines (;)
-	cmp al, 59
-	je purge_comment
+	# Check if this is first digit in hex val
+	neg edi                     # Flip sign of edi to indicate we got a digit
+	jl loop                     # Negative -> first digit, get another one
 
-	# deal all ascii less than 0
-	cmp al, 48
-	jl ascii_other
-
-	# deal with 0-9
-	cmp al, 58
-	jl ascii_num
-
-	# deal with all ascii less than A
-	cmp al, 65
-	jl ascii_other
-
-	# deal with A-F
-	cmp al, 71
-	jl ascii_high
-
-	# deal with all ascii less than a
-	cmp al, 97
-	jl ascii_other
-
-	# deal with a-f
-	cmp al, 103
-	jl ascii_low
-
-	# The rest that remains needs to be ignored
-	jmp ascii_other
-
-purge_comment:
-	# Read a byte
-	call Read_byte
-
-	# Loop if not LF
-	cmp al, 10
-	jne purge_comment
-
-	# Otherwise return -1
-
-ascii_other:
-	push -1
-	pop eax                     # return -1
-	ret
-
-ascii_num:
-	sub al, 48
-	ret
-
-ascii_low:
-	sub al, 32                  # convert to uppercase
-
-ascii_high:
-	sub al, 55
-	ret
-
-# Writes byte stored in al
-write_byte:
-	# Print our Hex
-	mov ebx, edx                # Where are we writing to
-	push edx                    # protect fout
-	push 1                      # prepare to set edx to 1
-	pop edx                     # set the size of chars we want
-	push eax                    # Move output to stack
-	mov ecx, esp                # What we are writing
-	push 4                      # prepare to set eax to 4
-	pop eax                     # the syscall number for write
-	int 0x80                    # call the Kernel
-	pop ebx                     # deallocate stack
-	pop edx                     # restore fout
-	ret
-
-Read_byte:
-	# Attempt to read 1 byte from STDIN
-	push edx                    # protect fout
-	push 1                      # prepare to set edx to 1
-	pop edx                     # set the size of chars we want
-	push edi                    # allocate stack
-	mov ecx, esp                # Where to put it
-	mov ebx, esi                # Where are we reading from
-	push 3                      # prepare to set eax to 3
-	pop eax                     # the syscall number for read
-	int 0x80                    # call the Kernel
-
-	test eax, eax               # check what we got
-	je Done                     # Got EOF call it done
-
-	# load byte
-	pop eax                     # load char
-	pop edx                     # restore fout
-	ret
-
-Done:
-	# program completed Successfully
-	xor ebx, ebx                # All is well, ebx = 0
-	push 1
-	pop eax                     # put the exit syscall number in eax
-	int 0x80                    # Call it a good day
-
+	# We have both digits in low byte of ebp, good to write
+	mov [ecx], ebp              # Move edge to buffer
+	mov ebx, edi                # Move outfile to ebx
+	push 4
+	pop eax                     # Set write syscall in eax
+	int 0x80                    # Do the write
+	jmp loop_reset_all          # Start a fresh byte
 ELF_end:
