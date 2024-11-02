@@ -82,7 +82,7 @@ cont:
 	cmp al, 59                  # Start of ';' comment
 	je loop_add_comment
 
-	# Start of hext str to int
+	# Start of hex str to int
 	sub al, 48                  # Subtract ascii '0' from al
 	sub al, 10                  # Check for value in '0'-'9'
 	jb write                    # We have hex value, write it
