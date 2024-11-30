@@ -104,8 +104,7 @@ write:
 	# We have both digits in low byte of ebp, good to write
 	mov [ecx], ebp              # Move edge to buffer
 	mov ebx, edi                # Move outfile to ebx
-	push 4
-	pop eax                     # Set write syscall in eax
+	mov al, 4                   # Set write syscall in eax
 	int 0x80                    # Do the write
 	jmp loop_reset_all          # Start a fresh byte
 ELF_end:

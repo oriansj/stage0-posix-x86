@@ -19,6 +19,7 @@ DEFINE je 74
 DEFINE jl 7C
 DEFINE jmp EB
 DEFINE jne 75
+DEFINE mov_al, B0
 DEFINE mov_al,[ecx] 8A01
 DEFINE mov_ebx,edi 89FB
 DEFINE mov_ecx,esp 89E1
@@ -133,8 +134,7 @@ DEFINE xor_ecx,ecx 31C9
 	# We have both digits in low byte of ebp, good to write
 	mov_[ecx],ebp               # Move edge to buffer
 	mov_ebx,edi                 # Move outfile to ebx
-	push !4
-	pop_eax                     # Set write syscall in eax
+	mov_al, !4                  # Set write syscall in eax
 	int !0x80                   # Do the write
 	jmp !loop_reset_all         # Start a fresh byte
 :ELF_end
