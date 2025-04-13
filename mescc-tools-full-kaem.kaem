@@ -32,6 +32,7 @@ cd ${ARCH_DIR}
 	-f ../M2libc/sys/utsname.h \
 	-f ../M2libc/${ARCH}/linux/unistd.c \
 	-f ../M2libc/${ARCH}/linux/sys/stat.c \
+	-f ../M2libc/ctype.c \
 	-f ../M2libc/stdlib.c \
 	-f ../M2libc/stdarg.h \
 	-f ../M2libc/stdio.h \
@@ -77,6 +78,7 @@ cd ${ARCH_DIR}
 	-f ../M2libc/fcntl.c \
 	-f ../M2libc/sys/utsname.h \
 	-f ../M2libc/${ARCH}/linux/unistd.c \
+	-f ../M2libc/ctype.c \
 	-f ../M2libc/stdlib.c \
 	-f ../M2libc/stdarg.h \
 	-f ../M2libc/stdio.h \
@@ -118,6 +120,7 @@ cd ${ARCH_DIR}
 	-f ../M2libc/${ARCH}/linux/unistd.c \
 	-f ../M2libc/${ARCH}/linux/fcntl.c \
 	-f ../M2libc/fcntl.c \
+	-f ../M2libc/ctype.c \
 	-f ../M2libc/stdlib.c \
 	-f ../M2libc/stdarg.h \
 	-f ../M2libc/stdio.h \
@@ -155,6 +158,7 @@ cd ${ARCH_DIR}
 	-f ../M2libc/${ARCH}/linux/unistd.c \
 	-f ../M2libc/${ARCH}/linux/fcntl.c \
 	-f ../M2libc/fcntl.c \
+	-f ../M2libc/ctype.c \
 	-f ../M2libc/stdlib.c \
 	-f ../M2libc/stdarg.h \
 	-f ../M2libc/stdio.h \
@@ -165,6 +169,7 @@ cd ${ARCH_DIR}
 	-f ../M2-Planet/cc_reader.c \
 	-f ../M2-Planet/cc_strings.c \
 	-f ../M2-Planet/cc_types.c \
+	-f ../M2-Planet/cc_emit.c \
 	-f ../M2-Planet/cc_core.c \
 	-f ../M2-Planet/cc_macro.c \
 	-f ../M2-Planet/cc.c \
