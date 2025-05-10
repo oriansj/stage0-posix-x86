@@ -232,7 +232,7 @@ get_token_comment_line:
 	jne get_token_done          # keep if just '/'
 
 	# Deal with // line comment
-	call fgetc                  # drop to match
+	call purge_macro            # Ignore everything until newline
 	mov [C], eax                # Set C
 	jmp reset                   # throw away, try again
 
@@ -613,108 +613,78 @@ program:
 	push ecx                    # Protect ECX
 
 new_type:
-    mov eax, [global_token] # Using global_token
-    cmp eax, 0                  # Check if NULL
-    je program_done             # Be done if null
-
-    mov ebx, [eax+8]                  # GLOBAL_TOKEN->S
-    lea eax, [enum]                   # "enum"
-    call match                        # IF GLOBAL_TOKEN->S == "enum"
-    cmp eax, 0                        # If true
-    jne constant_value                # Looks like not an enum
-
-    # Deal with minimal anonymous enums
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
-
-    lea eax, [enum_error_open_curly]  # Using "ERROR in enum\nExpected {\n"
-    lea ebx, [open_curly_brace]       # Using "{"
-    call require_match                # Require match and skip
-
-enumerator:
-    mov eax, [global_token]           # Using global token
-    mov eax, [eax+8]                  # global_token->s
-    mov ebx, 0                        # NULL
-    mov ecx, [global_constant_list]   # global_constant_list
-    call sym_declare                  # Declare the constant
-    mov [global_constant_list], eax   # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
-
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
-
-    lea eax, [enum_error_equal]       # Using "ERROR in enum\nExpected =\n"
-    lea ebx, [equal]                  # Using "="
-    call require_match                # Require match and skip
-
-    mov ebx, [global_token]           # Using global_token
-    mov eax, [global_constant_list]   # Use global_constant_list
-    mov [eax+16], ebx                 # global_constant_list->arguments = global_token
-
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
-
-    mov eax, [global_token]           # Use global_token
-    mov ebx, [eax+8]                  # global_token->s
-    lea eax, [comma]                  # ","
-    call match                        # IF global_token->s == ","
-    cmp eax, 0                        # If true
-    jne enum_end                      # No comma means no more enumerators
-
-    # Skip comma
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
-
-    # Check if there are more enumerators or if it was a trailing comma
-    mov ebx, [eax+8]                  # global_token->s
-    lea eax, [close_curly_brace]      # "}"
-    call match                        # IF global_token->s == "}"
-    cmp eax, 0                        # If true
-    jne enumerator                    # More enumerators
-
-enum_end:
-    lea eax, [enum_error_close_curly] # Using "ERROR in enum\nExpected }\n"
-    lea ebx, [close_curly_brace]      # Using "}"
-    call require_match                # Require match and skip
-
-    lea eax, [enum_error_semi_colon]  # Using "ERROR in enum\nExpected ;\n"
-    lea ebx, [semicolon]              # Using ";"
-    call require_match                # Require match and skip
-
-    jmp new_type                      # go around again
-
-constant_value:
-	mov eax, [global_token]     # Using global_token
+	mov eax, [global_token] # Using global_token
 	cmp eax, 0                  # Check if NULL
 	je program_done             # Be done if null
 
-	mov ebx, [eax+8]            # GLOBAL_TOKEN->S
-	mov eax, OFFSET constant    # "CONSTANT"
-	call match                  # IF GLOBAL_TOKEN->S == "CONSTANT"
-	cmp eax, 0                  # If true
-	jne program_else            # Looks like not a constant
+	mov ebx, [eax+8]                  # GLOBAL_TOKEN->S
+	lea eax, [enum]                   # "enum"
+	call match                        # IF GLOBAL_TOKEN->S == "enum"
+	cmp eax, 0                        # If true
+	jne program_else                  # Looks like not an enum
 
-	# Deal with minimal constant case
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax]              # global_token->next
-	mov [global_token], eax     # global_token = global_token->next
+	# Deal with minimal anonymous enums
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
 
-	mov eax, [eax+8]            # global_token->S
-	mov ebx, 0                  # NULL
-	mov ecx, [global_constant_list] # global_constant_list
-	call sym_declare            # Declare that constant
-	mov [global_constant_list], eax # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
+	lea eax, [enum_error_open_curly]  # Using "ERROR in enum\nExpected {\n"
+	lea ebx, [open_curly_brace]       # Using "{"
+	call require_match                # Require match and skip
 
-	mov ebx, [global_token]     # Using global_token
-	mov ebx, [ebx]              # global_token->next
-	mov [eax+16], ebx           # global_constant_list->arguments = global_token->next
+enumerator:
+	mov eax, [global_token]           # Using global token
+	mov eax, [eax+8]                  # global_token->s
+	mov ebx, 0                        # NULL
+	mov ecx, [global_constant_list]   # global_constant_list
+	call sym_declare                  # Declare the constant
+	mov [global_constant_list], eax   # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
 
-	mov ebx, [ebx]              # global_token->next->next
-	mov [global_token], ebx     # global_token = global_token->next->next;
-	jmp new_type                # go around again
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
+
+	lea eax, [enum_error_equal]       # Using "ERROR in enum\nExpected =\n"
+	lea ebx, [equal]                  # Using "="
+	call require_match                # Require match and skip
+
+	mov ebx, [global_token]           # Using global_token
+	mov eax, [global_constant_list]   # Use global_constant_list
+	mov [eax+16], ebx                 # global_constant_list->arguments = global_token
+
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
+
+	mov eax, [global_token]           # Use global_token
+	mov ebx, [eax+8]                  # global_token->s
+	lea eax, [comma]                  # ","
+	call match                        # IF global_token->s == ","
+	cmp eax, 0                        # If true
+	jne enum_end                      # No comma means no more enumerators
+
+	# Skip comma
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
+
+	# Check if there are more enumerators or if it was a trailing comma
+	mov ebx, [eax+8]                  # global_token->s
+	lea eax, [close_curly_brace]      # "}"
+	call match                        # IF global_token->s == "}"
+	cmp eax, 0                        # If true
+	jne enumerator                    # More enumerators
+
+enum_end:
+	lea eax, [enum_error_close_curly] # Using "ERROR in enum\nExpected }\n"
+	lea ebx, [close_curly_brace]      # Using "}"
+	call require_match                # Require match and skip
+
+	lea eax, [enum_error_semi_colon]  # Using "ERROR in enum\nExpected ;\n"
+	lea ebx, [semicolon]              # Using ";"
+	call require_match                # Require match and skip
+
+	jmp new_type                      # go around again
 
 program_else:
 	call type_name              # Figure out the type_size
@@ -3978,33 +3948,10 @@ create_struct_iter:
 	cmp eax, 125                # IF global_token->S[0] == "}"
 	je create_struct_done       # be done
 
-	# Looks like we are adding members
-	# Lets see if it is a union
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax+8]            # global_token->S
-	mov ebx, OFFSET union       # Using "union"
-	call match                  # IF match(global_token->s, "union")
-	cmp eax, 0                  # Deal with union
-	jne create_struct_single    # Otherwise deal with singles
-
-	# Deal with union
-	mov eax, esi                # Put last in right place
-	mov ebx, ecx                # put offset in right place
-	call build_union            # ASSEMBLE
-	mov esi, eax                # last = build_union(last, offset)
-	add ecx, edi                # offset = offset + member_size
-
-	mov eax, OFFSET create_struct_string_1 # Using "ERROR in create_struct\n Missing ;\n"
-	mov ebx, OFFSET semicolon   # Using ";"
-	call require_match          # Make sure we have it
-	jmp create_struct_iter      # keep going
-
-create_struct_single:
-	# deal with singles
 	mov eax, esi                # Put last in right place
 	mov ebx, ecx                # put offset in right place
 	call build_member           # ASSEMBLE
-	mov esi, eax                # last = build_union(last, offset)
+	mov esi, eax                # last = build_member(last, offset)
 	add ecx, edi                # offset = offset + member_size
 
 	mov eax, OFFSET create_struct_string_1 # Using "ERROR in create_struct\n Missing ;\n"
@@ -4162,72 +4109,6 @@ build_member_done:
 	ret
 
 build_member_string_0: .asciz "Struct only supports [num] form\n"
-
-
-# build_union function
-# Receives struct type* last in EAX, int offset in EBX and global member_size in EDI
-# Updates member_size in EDI and returns struct type* LAST in EAX
-# Uses ECX for struct type* last, EDX for int offset, ESI for int size and EDI for int member_size
-build_union:
-	push ebx                    # Protect EBX
-	push ecx                    # Protect ECX
-	push edx                    # Protect EDX
-	push esi                    # Protect ESI
-	mov ecx, eax                # Put LAST in right spot
-	mov edx, ebx                # Put OFFSET in right spot
-	mov esi, 0                  # SIZE = 0
-
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax]              # global_token->NEXT
-	mov [global_token], eax     # global_token = global_token->NEXT
-
-	mov eax, OFFSET build_union_string_0 # Using "ERROR in build_union\nMissing {\n"
-	mov ebx, OFFSET open_curly_brace # Using "{"
-	call require_match          # Make sure we have it
-
-build_union_iter:
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax+8]            # global_token->S
-	mov al, [eax]               # global_token->S[0]
-	movzx eax, al               # make it useful
-	cmp eax, 125                # IF global_token->S[0] == "}"
-	je build_union_done         # Be done
-
-	# Collect union member
-	mov eax, ecx                # Passing LAST
-	mov ebx, edx                # Passing offset
-	call build_member           # build_member(last, offset)
-	mov ecx, eax                # last = build_member(last, offset)
-
-	cmp esi, edi                # IF member_size > size
-	jg build_union_size         # Then update size
-
-	# deal with member_size > size
-	mov esi, edi                # SIZE = MEMBER_SIZE
-
-build_union_size:
-	mov eax, OFFSET build_union_string_1 # Using "ERROR in build_union\nMissing ;\n"
-	mov ebx, OFFSET semicolon   # Using ";"
-	call require_match          # Make sure we have it
-	jmp build_union_iter        # Keep going
-
-build_union_done:
-	mov edi, esi                # MEMBER_SIZE = SIZE
-
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax]              # global_token->NEXT
-	mov [global_token], eax     # global_token = global_token->NEXT
-
-	mov eax, ecx                # Return last
-
-	pop esi                     # Restore ESI
-	pop edx                     # Restore EDX
-	pop ecx                     # Restore ECX
-	pop ebx                     # Restore EBX
-	ret
-
-build_union_string_0: .asciz "ERROR in build_union\nMissing {\n"
-build_union_string_1: .asciz "ERROR in build_union\nMissing ;\n"
 
 
 # sym_declare function
@@ -4452,10 +4333,8 @@ Exit_Failure:
 
 
 # Keywords
-union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
-constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"
 argv_string: .asciz "argv"
