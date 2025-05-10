@@ -613,78 +613,78 @@ program:
 	push ecx                    # Protect ECX
 
 new_type:
-    mov eax, [global_token] # Using global_token
-    cmp eax, 0                  # Check if NULL
-    je program_done             # Be done if null
+	mov eax, [global_token] # Using global_token
+	cmp eax, 0                  # Check if NULL
+	je program_done             # Be done if null
 
-    mov ebx, [eax+8]                  # GLOBAL_TOKEN->S
-    lea eax, [enum]                   # "enum"
-    call match                        # IF GLOBAL_TOKEN->S == "enum"
-    cmp eax, 0                        # If true
-    jne program_else                  # Looks like not an enum
+	mov ebx, [eax+8]                  # GLOBAL_TOKEN->S
+	lea eax, [enum]                   # "enum"
+	call match                        # IF GLOBAL_TOKEN->S == "enum"
+	cmp eax, 0                        # If true
+	jne program_else                  # Looks like not an enum
 
-    # Deal with minimal anonymous enums
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
+	# Deal with minimal anonymous enums
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
 
-    lea eax, [enum_error_open_curly]  # Using "ERROR in enum\nExpected {\n"
-    lea ebx, [open_curly_brace]       # Using "{"
-    call require_match                # Require match and skip
+	lea eax, [enum_error_open_curly]  # Using "ERROR in enum\nExpected {\n"
+	lea ebx, [open_curly_brace]       # Using "{"
+	call require_match                # Require match and skip
 
 enumerator:
-    mov eax, [global_token]           # Using global token
-    mov eax, [eax+8]                  # global_token->s
-    mov ebx, 0                        # NULL
-    mov ecx, [global_constant_list]   # global_constant_list
-    call sym_declare                  # Declare the constant
-    mov [global_constant_list], eax   # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
+	mov eax, [global_token]           # Using global token
+	mov eax, [eax+8]                  # global_token->s
+	mov ebx, 0                        # NULL
+	mov ecx, [global_constant_list]   # global_constant_list
+	call sym_declare                  # Declare the constant
+	mov [global_constant_list], eax   # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
 
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
 
-    lea eax, [enum_error_equal]       # Using "ERROR in enum\nExpected =\n"
-    lea ebx, [equal]                  # Using "="
-    call require_match                # Require match and skip
+	lea eax, [enum_error_equal]       # Using "ERROR in enum\nExpected =\n"
+	lea ebx, [equal]                  # Using "="
+	call require_match                # Require match and skip
 
-    mov ebx, [global_token]           # Using global_token
-    mov eax, [global_constant_list]   # Use global_constant_list
-    mov [eax+16], ebx                 # global_constant_list->arguments = global_token
+	mov ebx, [global_token]           # Using global_token
+	mov eax, [global_constant_list]   # Use global_constant_list
+	mov [eax+16], ebx                 # global_constant_list->arguments = global_token
 
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
 
-    mov eax, [global_token]           # Use global_token
-    mov ebx, [eax+8]                  # global_token->s
-    lea eax, [comma]                  # ","
-    call match                        # IF global_token->s == ","
-    cmp eax, 0                        # If true
-    jne enum_end                      # No comma means no more enumerators
+	mov eax, [global_token]           # Use global_token
+	mov ebx, [eax+8]                  # global_token->s
+	lea eax, [comma]                  # ","
+	call match                        # IF global_token->s == ","
+	cmp eax, 0                        # If true
+	jne enum_end                      # No comma means no more enumerators
 
-    # Skip comma
-    mov eax, [global_token]           # Using global_token
-    mov eax, [eax]                    # global_token->next
-    mov [global_token], eax           # global_token = global_token->next
+	# Skip comma
+	mov eax, [global_token]           # Using global_token
+	mov eax, [eax]                    # global_token->next
+	mov [global_token], eax           # global_token = global_token->next
 
-    # Check if there are more enumerators or if it was a trailing comma
-    mov ebx, [eax+8]                  # global_token->s
-    lea eax, [close_curly_brace]      # "}"
-    call match                        # IF global_token->s == "}"
-    cmp eax, 0                        # If true
-    jne enumerator                    # More enumerators
+	# Check if there are more enumerators or if it was a trailing comma
+	mov ebx, [eax+8]                  # global_token->s
+	lea eax, [close_curly_brace]      # "}"
+	call match                        # IF global_token->s == "}"
+	cmp eax, 0                        # If true
+	jne enumerator                    # More enumerators
 
 enum_end:
-    lea eax, [enum_error_close_curly] # Using "ERROR in enum\nExpected }\n"
-    lea ebx, [close_curly_brace]      # Using "}"
-    call require_match                # Require match and skip
+	lea eax, [enum_error_close_curly] # Using "ERROR in enum\nExpected }\n"
+	lea ebx, [close_curly_brace]      # Using "}"
+	call require_match                # Require match and skip
 
-    lea eax, [enum_error_semi_colon]  # Using "ERROR in enum\nExpected ;\n"
-    lea ebx, [semicolon]              # Using ";"
-    call require_match                # Require match and skip
+	lea eax, [enum_error_semi_colon]  # Using "ERROR in enum\nExpected ;\n"
+	lea ebx, [semicolon]              # Using ";"
+	call require_match                # Require match and skip
 
-    jmp new_type                      # go around again
+	jmp new_type                      # go around again
 
 program_else:
 	call type_name              # Figure out the type_size
