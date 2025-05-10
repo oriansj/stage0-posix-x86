@@ -377,7 +377,7 @@ DEFINE xchg_eax,ebx 93
 	jne %get_token_done                         # keep if just '/'
 
 	# Deal with // line comment
-	call %fgetc                                 # drop to match
+	call %purge_macro                           # Ignore everything until newline
 	mov_[DWORD],eax &C                          # Set C
 	jmp %reset                                  # throw away, try again
 

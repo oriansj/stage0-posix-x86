@@ -232,7 +232,7 @@ get_token_comment_line:
 	jne get_token_done          # keep if just '/'
 
 	# Deal with // line comment
-	call fgetc                  # drop to match
+	call purge_macro            # Ignore everything until newline
 	mov [C], eax                # Set C
 	jmp reset                   # throw away, try again
 
