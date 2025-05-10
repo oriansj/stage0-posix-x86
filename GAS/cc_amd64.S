@@ -621,7 +621,7 @@ new_type:
     lea eax, [enum]                   # "enum"
     call match                        # IF GLOBAL_TOKEN->S == "enum"
     cmp eax, 0                        # If true
-    jne constant_value                # Looks like not an enum
+    jne program_else                  # Looks like not an enum
 
     # Deal with minimal anonymous enums
     mov eax, [global_token]           # Using global_token
@@ -685,36 +685,6 @@ enum_end:
     call require_match                # Require match and skip
 
     jmp new_type                      # go around again
-
-constant_value:
-	mov eax, [global_token]     # Using global_token
-	cmp eax, 0                  # Check if NULL
-	je program_done             # Be done if null
-
-	mov ebx, [eax+8]            # GLOBAL_TOKEN->S
-	mov eax, OFFSET constant    # "CONSTANT"
-	call match                  # IF GLOBAL_TOKEN->S == "CONSTANT"
-	cmp eax, 0                  # If true
-	jne program_else            # Looks like not a constant
-
-	# Deal with minimal constant case
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax]              # global_token->next
-	mov [global_token], eax     # global_token = global_token->next
-
-	mov eax, [eax+8]            # global_token->S
-	mov ebx, 0                  # NULL
-	mov ecx, [global_constant_list] # global_constant_list
-	call sym_declare            # Declare that constant
-	mov [global_constant_list], eax # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
-
-	mov ebx, [global_token]     # Using global_token
-	mov ebx, [ebx]              # global_token->next
-	mov [eax+16], ebx           # global_constant_list->arguments = global_token->next
-
-	mov ebx, [ebx]              # global_token->next->next
-	mov [global_token], ebx     # global_token = global_token->next->next;
-	jmp new_type                # go around again
 
 program_else:
 	call type_name              # Figure out the type_size
@@ -4455,7 +4425,6 @@ Exit_Failure:
 union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
-constant: .asciz "CONSTANT"
 main_string: .asciz "main"
 argc_string: .asciz "argc"
 argv_string: .asciz "argv"

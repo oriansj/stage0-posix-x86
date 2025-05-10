@@ -779,7 +779,7 @@ Expected ;
     mov_eax, &enum                        # "enum"
     call %match                           # IF GLOBAL_TOKEN->S == "enum"
     cmp_eax, !0                           # If true
-    jne %constant_value                   # Looks like not an enum
+    jne %program_else                     # Looks like not an enum
 
     # Deal with minimal anonymous enums
     mov_eax,[DWORD] &global_token         # Using global_token
@@ -843,36 +843,6 @@ Expected ;
     call %require_match                   # Require match and skip
 
     jmp %new_type                         # go around again
-
-:constant_value
-	mov_eax,[DWORD] &global_token               # Using global_token
-	cmp_eax, !0                                 # Check if NULL
-	je %program_done                            # Be done if null
-
-	mov_ebx,[eax+BYTE] !8                       # GLOBAL_TOKEN->S
-	mov_eax, &constant                          # "CONSTANT"
-	call %match                                 # IF GLOBAL_TOKEN->S == "CONSTANT"
-	cmp_eax, !0                                 # If true
-	jne %program_else                           # Looks like not a constant
-
-	# Deal with minimal constant case
-	mov_eax,[DWORD] &global_token               # Using global_token
-	mov_eax,[eax]                               # global_token->next
-	mov_[DWORD],eax &global_token               # global_token = global_token->next
-
-	mov_eax,[eax+BYTE] !8                       # global_token->S
-	mov_ebx, %0                                 # NULL
-	mov_ecx,[DWORD] &global_constant_list       # global_constant_list
-	call %sym_declare                           # Declare that constant
-	mov_[DWORD],eax &global_constant_list       # global_constant_list = sym_declare(global_token->s, NULL, global_constant_list);
-
-	mov_ebx,[DWORD] &global_token               # Using global_token
-	mov_ebx,[ebx]                               # global_token->next
-	mov_[eax+BYTE],ebx !16                      # global_constant_list->arguments = global_token->next
-
-	mov_ebx,[ebx]                               # global_token->next->next
-	mov_[DWORD],ebx &global_token               # global_token = global_token->next->next
-	jmp %new_type                               # go around again
 
 :program_else
 	call %type_name                             # Figure out the type_size
@@ -4780,7 +4750,6 @@ Missing ;
 :union  "union"
 :struct  "struct"
 :enum  "enum"
-:constant  "CONSTANT"
 :main_string  "main"
 :argc_string  "argc"
 :argv_string  "argv"
