@@ -3948,33 +3948,10 @@ create_struct_iter:
 	cmp eax, 125                # IF global_token->S[0] == "}"
 	je create_struct_done       # be done
 
-	# Looks like we are adding members
-	# Lets see if it is a union
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax+8]            # global_token->S
-	mov ebx, OFFSET union       # Using "union"
-	call match                  # IF match(global_token->s, "union")
-	cmp eax, 0                  # Deal with union
-	jne create_struct_single    # Otherwise deal with singles
-
-	# Deal with union
-	mov eax, esi                # Put last in right place
-	mov ebx, ecx                # put offset in right place
-	call build_union            # ASSEMBLE
-	mov esi, eax                # last = build_union(last, offset)
-	add ecx, edi                # offset = offset + member_size
-
-	mov eax, OFFSET create_struct_string_1 # Using "ERROR in create_struct\n Missing ;\n"
-	mov ebx, OFFSET semicolon   # Using ";"
-	call require_match          # Make sure we have it
-	jmp create_struct_iter      # keep going
-
-create_struct_single:
-	# deal with singles
 	mov eax, esi                # Put last in right place
 	mov ebx, ecx                # put offset in right place
 	call build_member           # ASSEMBLE
-	mov esi, eax                # last = build_union(last, offset)
+	mov esi, eax                # last = build_member(last, offset)
 	add ecx, edi                # offset = offset + member_size
 
 	mov eax, OFFSET create_struct_string_1 # Using "ERROR in create_struct\n Missing ;\n"
@@ -4132,72 +4109,6 @@ build_member_done:
 	ret
 
 build_member_string_0: .asciz "Struct only supports [num] form\n"
-
-
-# build_union function
-# Receives struct type* last in EAX, int offset in EBX and global member_size in EDI
-# Updates member_size in EDI and returns struct type* LAST in EAX
-# Uses ECX for struct type* last, EDX for int offset, ESI for int size and EDI for int member_size
-build_union:
-	push ebx                    # Protect EBX
-	push ecx                    # Protect ECX
-	push edx                    # Protect EDX
-	push esi                    # Protect ESI
-	mov ecx, eax                # Put LAST in right spot
-	mov edx, ebx                # Put OFFSET in right spot
-	mov esi, 0                  # SIZE = 0
-
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax]              # global_token->NEXT
-	mov [global_token], eax     # global_token = global_token->NEXT
-
-	mov eax, OFFSET build_union_string_0 # Using "ERROR in build_union\nMissing {\n"
-	mov ebx, OFFSET open_curly_brace # Using "{"
-	call require_match          # Make sure we have it
-
-build_union_iter:
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax+8]            # global_token->S
-	mov al, [eax]               # global_token->S[0]
-	movzx eax, al               # make it useful
-	cmp eax, 125                # IF global_token->S[0] == "}"
-	je build_union_done         # Be done
-
-	# Collect union member
-	mov eax, ecx                # Passing LAST
-	mov ebx, edx                # Passing offset
-	call build_member           # build_member(last, offset)
-	mov ecx, eax                # last = build_member(last, offset)
-
-	cmp esi, edi                # IF member_size > size
-	jg build_union_size         # Then update size
-
-	# deal with member_size > size
-	mov esi, edi                # SIZE = MEMBER_SIZE
-
-build_union_size:
-	mov eax, OFFSET build_union_string_1 # Using "ERROR in build_union\nMissing ;\n"
-	mov ebx, OFFSET semicolon   # Using ";"
-	call require_match          # Make sure we have it
-	jmp build_union_iter        # Keep going
-
-build_union_done:
-	mov edi, esi                # MEMBER_SIZE = SIZE
-
-	mov eax, [global_token]     # Using global_token
-	mov eax, [eax]              # global_token->NEXT
-	mov [global_token], eax     # global_token = global_token->NEXT
-
-	mov eax, ecx                # Return last
-
-	pop esi                     # Restore ESI
-	pop edx                     # Restore EDX
-	pop ecx                     # Restore ECX
-	pop ebx                     # Restore EBX
-	ret
-
-build_union_string_0: .asciz "ERROR in build_union\nMissing {\n"
-build_union_string_1: .asciz "ERROR in build_union\nMissing ;\n"
 
 
 # sym_declare function
@@ -4422,7 +4333,6 @@ Exit_Failure:
 
 
 # Keywords
-union: .asciz "union"
 struct: .asciz "struct"
 enum: .asciz "enum"
 main_string: .asciz "main"
