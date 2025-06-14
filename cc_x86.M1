@@ -2327,37 +2327,37 @@ Missing ;
 	push_edx                                    # Protect EDX
 
 	mov_eax, &additive_expr                     # Using additive_expr
-	mov_ebx, &relational_expr_stub_string_0     # Using "cmp\nsetl_al\nmovzx_eax,al\n"
+	mov_ebx, &relational_expr_stub_string_0     # Using "cmp_ebx,eax\nsetl_al\nmovzx_eax,al\n"
 	mov_ecx, &less_than_string                  # Using "<"
 	mov_edx, &relational_expr_stub              # And recurse
 	call %general_recursion                     # Hit it
 
 	mov_eax, &additive_expr                     # Using additive_expr
-	mov_ebx, &relational_expr_stub_string_1     # Using "cmp\nsetle_al\nmovzx_eax,al\n"
+	mov_ebx, &relational_expr_stub_string_1     # Using "cmp_ebx,eax\nsetle_al\nmovzx_eax,al\n"
 	mov_ecx, &less_than_equal_string            # Using "<="
 	mov_edx, &relational_expr_stub              # And recurse
 	call %general_recursion                     # Hit it
 
 	mov_eax, &additive_expr                     # Using additive_expr
-	mov_ebx, &relational_expr_stub_string_2     # Using "cmp\nsetge_al\nmovzx_eax,al\n"
+	mov_ebx, &relational_expr_stub_string_2     # Using "cmp_ebx,eax\nsetge_al\nmovzx_eax,al\n"
 	mov_ecx, &greater_than_equal_string         # Using ">="
 	mov_edx, &relational_expr_stub              # And recurse
 	call %general_recursion                     # Hit it
 
 	mov_eax, &additive_expr                     # Using additive_expr
-	mov_ebx, &relational_expr_stub_string_3     # Using "cmp\nsetg_al\nmovzx_eax,al\n"
+	mov_ebx, &relational_expr_stub_string_3     # Using "cmp_ebx,eax\nsetg_al\nmovzx_eax,al\n"
 	mov_ecx, &greater_than_string               # Using ">"
 	mov_edx, &relational_expr_stub              # And recurse
 	call %general_recursion                     # Hit it
 
 	mov_eax, &additive_expr                     # Using additive_expr
-	mov_ebx, &relational_expr_stub_string_4     # Using "cmp\nsete_al\nmovzx_eax,al\n"
+	mov_ebx, &relational_expr_stub_string_4     # Using "cmp_ebx,eax\nsete_al\nmovzx_eax,al\n"
 	mov_ecx, &equal_to_string                   # Using "=="
 	mov_edx, &relational_expr_stub              # And recurse
 	call %general_recursion                     # Hit it
 
 	mov_eax, &additive_expr                     # Using additive_expr
-	mov_ebx, &relational_expr_stub_string_5     # Using "cmp\nsetne_al\nmovzx_eax,al\n"
+	mov_ebx, &relational_expr_stub_string_5     # Using "cmp_ebx,eax\nsetne_al\nmovzx_eax,al\n"
 	mov_ecx, &not_equal_string                  # Using "!="
 	mov_edx, &relational_expr_stub              # And recurse
 	call %general_recursion                     # Hit it
@@ -2367,27 +2367,27 @@ Missing ;
 	pop_ebx                                     # Restore EBX
 	ret
 
-:relational_expr_stub_string_0  "cmp
+:relational_expr_stub_string_0  "cmp_ebx,eax
 setl_al
 movzx_eax,al
 "
-:relational_expr_stub_string_1  "cmp
+:relational_expr_stub_string_1  "cmp_ebx,eax
 setle_al
 movzx_eax,al
 "
-:relational_expr_stub_string_2  "cmp
+:relational_expr_stub_string_2  "cmp_ebx,eax
 setge_al
 movzx_eax,al
 "
-:relational_expr_stub_string_3  "cmp
+:relational_expr_stub_string_3  "cmp_ebx,eax
 setg_al
 movzx_eax,al
 "
-:relational_expr_stub_string_4  "cmp
+:relational_expr_stub_string_4  "cmp_ebx,eax
 sete_al
 movzx_eax,al
 "
-:relational_expr_stub_string_5  "cmp
+:relational_expr_stub_string_5  "cmp_ebx,eax
 setne_al
 movzx_eax,al
 "

@@ -2105,37 +2105,37 @@ relational_expr_stub:
 	push edx                    # Protect EDX
 
 	mov eax, OFFSET additive_expr # Using additive_expr
-	mov ebx, OFFSET relational_expr_stub_string_0 # Using "cmp\nsetl_al\nmovzx_eax,al\n"
+	mov ebx, OFFSET relational_expr_stub_string_0 # Using "cmp_ebx,eax\nsetl_al\nmovzx_eax,al\n"
 	mov ecx, OFFSET less_than_string # Using "<"
 	mov edx, OFFSET relational_expr_stub # And recurse
 	call general_recursion      # Hit it
 
 	mov eax, OFFSET additive_expr # Using additive_expr
-	mov ebx, OFFSET relational_expr_stub_string_1 # Using "cmp\nsetle_al\nmovzx_eax,al\n"
+	mov ebx, OFFSET relational_expr_stub_string_1 # Using "cmp_ebx,eax\nsetle_al\nmovzx_eax,al\n"
 	mov ecx, OFFSET less_than_equal_string # Using "<="
 	mov edx, OFFSET relational_expr_stub # And recurse
 	call general_recursion      # Hit it
 
 	mov eax, OFFSET additive_expr # Using additive_expr
-	mov ebx, OFFSET relational_expr_stub_string_2 # Using "cmp\nsetge_al\nmovzx_eax,al\n"
+	mov ebx, OFFSET relational_expr_stub_string_2 # Using "cmp_ebx,eax\nsetge_al\nmovzx_eax,al\n"
 	mov ecx, OFFSET greater_than_equal_string # Using ">="
 	mov edx, OFFSET relational_expr_stub # And recurse
 	call general_recursion      # Hit it
 
 	mov eax, OFFSET additive_expr # Using additive_expr
-	mov ebx, OFFSET relational_expr_stub_string_3 # Using "cmp\nsetg_al\nmovzx_eax,al\n"
+	mov ebx, OFFSET relational_expr_stub_string_3 # Using "cmp_ebx,eax\nsetg_al\nmovzx_eax,al\n"
 	mov ecx, OFFSET greater_than_string # Using ">"
 	mov edx, OFFSET relational_expr_stub # And recurse
 	call general_recursion      # Hit it
 
 	mov eax, OFFSET additive_expr # Using additive_expr
-	mov ebx, OFFSET relational_expr_stub_string_4 # Using "cmp\nsete_al\nmovzx_eax,al\n"
+	mov ebx, OFFSET relational_expr_stub_string_4 # Using "cmp_ebx,eax\nsete_al\nmovzx_eax,al\n"
 	mov ecx, OFFSET equal_to_string # Using "=="
 	mov edx, OFFSET relational_expr_stub # And recurse
 	call general_recursion      # Hit it
 
 	mov eax, OFFSET additive_expr # Using additive_expr
-	mov ebx, OFFSET relational_expr_stub_string_5 # Using "cmp\nsetne_al\nmovzx_eax,al\n"
+	mov ebx, OFFSET relational_expr_stub_string_5 # Using "cmp_ebx,eax\nsetne_al\nmovzx_eax,al\n"
 	mov ecx, OFFSET not_equal_string # Using "!="
 	mov edx, OFFSET relational_expr_stub # And recurse
 	call general_recursion      # Hit it
@@ -2145,12 +2145,12 @@ relational_expr_stub:
 	pop ebx                     # Restore EBX
 	ret
 
-relational_expr_stub_string_0: .asciz "cmp\nsetl_al\nmovzx_eax,al\n"
-relational_expr_stub_string_1: .asciz "cmp\nsetle_al\nmovzx_eax,al\n"
-relational_expr_stub_string_2: .asciz "cmp\nsetge_al\nmovzx_eax,al\n"
-relational_expr_stub_string_3: .asciz "cmp\nsetg_al\nmovzx_eax,al\n"
-relational_expr_stub_string_4: .asciz "cmp\nsete_al\nmovzx_eax,al\n"
-relational_expr_stub_string_5: .asciz "cmp\nsetne_al\nmovzx_eax,al\n"
+relational_expr_stub_string_0: .asciz "cmp_ebx,eax\nsetl_al\nmovzx_eax,al\n"
+relational_expr_stub_string_1: .asciz "cmp_ebx,eax\nsetle_al\nmovzx_eax,al\n"
+relational_expr_stub_string_2: .asciz "cmp_ebx,eax\nsetge_al\nmovzx_eax,al\n"
+relational_expr_stub_string_3: .asciz "cmp_ebx,eax\nsetg_al\nmovzx_eax,al\n"
+relational_expr_stub_string_4: .asciz "cmp_ebx,eax\nsete_al\nmovzx_eax,al\n"
+relational_expr_stub_string_5: .asciz "cmp_ebx,eax\nsetne_al\nmovzx_eax,al\n"
 
 
 # additive_expr function
