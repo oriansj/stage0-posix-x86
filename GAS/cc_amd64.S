@@ -2546,7 +2546,7 @@ primary_expr_not:
 	mov eax, OFFSET postfix_expr # Passing postfix_expr
 	call common_recursion       # Get what it is notting
 
-	mov eax, OFFSET primary_expr_string_3 # Using "xor_rax,rbx\n"
+	mov eax, OFFSET primary_expr_string_3 # Using "cmp_rbx,rax\nseta_al\nmovzx_rax,al\n"
 	call emit_out               # Emit it
 	jmp primary_expr_done       # Be done
 
@@ -2646,7 +2646,7 @@ primary_expr_done:
 primary_expr_string_0: .asciz "mov_rax, %0\n"
 primary_expr_string_1: .asciz "sub_rbx,rax\nmov_rax,rbx\n"
 primary_expr_string_2: .asciz "mov_rax, %1\n"
-primary_expr_string_3: .asciz "xor_rax,rbx\n"
+primary_expr_string_3: .asciz "cmp_rbx,rax\nseta_al\nmovzx_rax,al\n"
 primary_expr_string_4: .asciz "not_rax\n"
 primary_expr_string_5: .asciz "Error in Primary expression\nDidn't get )\n"
 primary_expr_string_6: .asciz "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"

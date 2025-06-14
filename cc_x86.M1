@@ -2819,7 +2819,7 @@ add_eax,ebx
 	mov_eax, &postfix_expr                      # Passing postfix_expr
 	call %common_recursion                      # Get what it is notting
 
-	mov_eax, &primary_expr_string_3             # Using "xor_eax,ebx\n"
+	mov_eax, &primary_expr_string_3             # Using "cmp_ebx,eax\nseta_al\nmovzx_eax,al\n"
 	call %emit_out                              # Emit it
 	jmp %primary_expr_done                      # Be done
 
@@ -2923,7 +2923,9 @@ mov_eax,ebx
 "
 :primary_expr_string_2  "mov_eax, %1
 "
-:primary_expr_string_3  "xor_eax,ebx
+:primary_expr_string_3  "cmp_ebx,eax
+seta_al
+movzx_eax,al
 "
 :primary_expr_string_4  "not_eax
 "
