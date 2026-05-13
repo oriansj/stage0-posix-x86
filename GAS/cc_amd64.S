@@ -452,6 +452,8 @@ consume_byte:
 	mov ebx, [string_index]     # S[0]
 	mov [ebx], al               # S[0] = C
 	add ebx, 1                  # S = S + 1
+	mov eax, 0                  # NULL terminate S
+	mov [ebx], al               # S[0] = NULL
 	mov [string_index], ebx     # Update S
 	call fgetc
 	pop ebx                     # Restore EBX

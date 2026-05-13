@@ -609,6 +609,8 @@ DEFINE xchg_eax,ebx 93
 	mov_ebx,[DWORD] &string_index               # S[0]
 	mov_[ebx],al                                # S[0] = C
 	add_ebx, !1                                 # S = S + 1
+	mov_eax, %0                                 # NULL terminate S
+	mov_[ebx],al                                # S[0] = NULL
 	mov_[DWORD],ebx &string_index               # Update S
 	call %fgetc
 	pop_ebx                                     # Restore EBX
