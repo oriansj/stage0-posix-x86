@@ -90,6 +90,8 @@
 	6A 05                       ; push !5
 	58                          ; pop_eax                     # the syscall number for open()
 	CD 80                       ; int !0x80                   # Now open that damn file
+	85C0                        ; test_eax,eax                # Check if the open failed
+	78 !fail                    ; js !fail                    # A negative result means error
 	89C6                        ; mov_esi,eax                 # Protect INPUT
 :keep
 	BA 00001000                 ; mov_edx, %0x100000          # set the size of chars we want
@@ -98,6 +100,8 @@
 	6A03                        ; push !3
 	58                          ; pop_eax                     # the syscall number for read
 	CD 80                       ; int !0x80                   # call the Kernel
+	85C0                        ; test_eax,eax                # Check if the read failed
+	78 !fail                    ; js !fail                    # A negative result means error
 	50                          ; push_eax                    # Protect the number of bytes read
 
 	89C2                        ; mov_edx,eax                 # Number of bytes to write
@@ -111,6 +115,14 @@
 	3D 00001000                 ; cmp_eax, %0x100000          # Check if buffer was fully used
 	74 !keep                    ; je !keep                    # Keep looping if was full
 	EB !core                    ; jmp !core                   # Otherwise move to next file
+
+:fail
+	# an input file could not be read
+	6A 01                       ; push !1
+	5B                          ; pop_ebx                     # All is not well
+	6A 01                       ; push !1
+	58                          ; pop_eax                     # put the exit syscall number in eax
+	CD 80                       ; int !0x80                   # Call it a bad day
 
 :done
 	# program completed Successfully

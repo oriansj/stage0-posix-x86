@@ -51,6 +51,8 @@ core:
 	push 5
 	pop eax                     # the syscall number for open()
 	int 0x80                    # Now open that damn file
+	test eax, eax               # Check if the open failed
+	js fail                     # A negative result means error
 	mov esi, eax                # Protect INPUT
 keep:
 	mov edx, 0x100000           # set the size of chars we want
@@ -59,6 +61,8 @@ keep:
 	push 3
 	pop eax                     # the syscall number for read
 	int 0x80                    # call the Kernel
+	test eax, eax               # Check if the read failed
+	js fail                     # A negative result means error
 	push eax                    # Protect the number of bytes read
 
 	mov edx, eax                # Number of bytes to write
@@ -72,6 +76,14 @@ keep:
 	cmp eax, 0x100000           # Check if buffer was fully used
 	je keep                     # Keep looping if was full
 	jmp core                    # Otherwise move to next file
+
+fail:
+	# an input file could not be read
+	push 1
+	pop ebx                     # All is not well
+	push 1
+	pop eax                     # put the exit syscall number in eax
+	int 0x80                    # Call it a bad day
 
 done:
 	# program completed Successfully
