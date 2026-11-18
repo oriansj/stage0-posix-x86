@@ -5,7 +5,7 @@
 
 # Build with:
 # M1 --architecture x86 --little-endian -f x86/Development/kaem-minimal.M1 -o bin/kaem-minimal.hex2
-# hex2 --architecture x86 --little-endian --base-address 0x8048000 -f x86/ELF-i386.hex2 -f bin/kaem-minimal.hex2 -o bin/kaem-minimal
+# hex2 --architecture x86 --little-endian --base-address 0x8048000 -f x86/Development/ELF-i386-seed.hex2 -f bin/kaem-minimal.hex2 -o bin/kaem-minimal
 
 DEFINE add_ebx, 83C3
 DEFINE add_ecx, 83C1
@@ -13,6 +13,7 @@ DEFINE add_ebx,eax 01C3
 DEFINE call E8
 DEFINE cmp_al, 3C
 DEFINE cmp_ebx,ecx 39CB
+DEFINE inc_edx 42
 DEFINE int CD
 DEFINE je32 0F84
 DEFINE je 74
@@ -31,15 +32,19 @@ DEFINE mov_ecx,eax 89C1
 DEFINE mov_ecx,ebx 89D9
 DEFINE mov_edx,ebp 89EA
 DEFINE mov_edx,ebx 89DA
+DEFINE mov_esi,eax 89C6
+DEFINE mov_edi,eax 89C7
+DEFINE mov_ebx,esi 89F3
+DEFINE mov_ebx,edi 89FB
+DEFINE mov_eax,edi 89F8
+DEFINE mov_edi,ebx 89DF
 DEFINE mov_al,[ebx] 8A03
 DEFINE mov_eax,[ebx] 8B03
 DEFINE mov_ebx,[ebx] 8B1B
 DEFINE mov_[ecx],al 8801
 DEFINE mov_[ecx],eax 8901
 DEFINE mov_eax,[DWORD] A1
-DEFINE mov_ebx,[DWORD] 8B1D
 DEFINE mov_[DWORD],eax A3
-DEFINE mov_[DWORD],ebx 891D
 DEFINE pop_eax 58
 DEFINE pop_ebx 5B
 DEFINE pop_ecx 59
@@ -52,6 +57,7 @@ DEFINE push 6A
 DEFINE ret C3
 DEFINE test_eax,eax 85C0
 DEFINE test_ebx,ebx 85DB
+DEFINE test_edx,edx 85D2
 DEFINE xor_eax,eax 31C0
 DEFINE xor_ebx,ebx 31DB
 DEFINE xor_ecx,ecx 31C9
@@ -77,7 +83,7 @@ DEFINE xor_edx,edx 31D2
 
 	test_eax,eax                      # IF NULL We couldn't open the file
 	jle !Exit_Failure                 # Abort hard
-	mov_[DWORD],eax &script           # Set input pointer
+	mov_esi,eax                       # Set input pointer
 
 	pop_eax                           # Get start of envp
 	mov_ebp,esp                       # Protect envp
@@ -86,19 +92,20 @@ DEFINE xor_edx,edx 31D2
 	pop_eax                           # the Syscall # for SYS_BRK
 	xor_ebx,ebx                       # Get current brk
 	int !0x80                         # Let the kernel do the work
-	mov_[DWORD],eax &MALLOC           # Set our malloc pointer
+	mov_edi,eax                       # Set our malloc pointer
 
 	# Where the main work gets done
+	# Using ESI for script, EDI for MALLOC and EDX for command_done
 	# Using EBX for tokens and ECX for tokens[i]
 :main_loop
-	mov_eax,[DWORD] &max_args         # Using 256 char* of space
+	mov_eax, %1024                    # Using 256 char* of space
 	call %malloc                      # get it
 	mov_ebx,eax                       # set tokens
 
 	mov_ecx,ebx                       # I = 0
 	xor_eax,eax                       # Using 0
 	mov_[DWORD],eax &status           # status = 0
-	mov_[DWORD],eax &command_done     # command_done = 0
+	xor_edx,edx                       # command_done = 0
 
 	# Using EAX for result and EBX for tokens[i]
 :collect_command
@@ -110,8 +117,7 @@ DEFINE xor_edx,edx 31D2
 	add_ecx, !4                       # i = i + 1 (adjusted for char* size)
 
 :collect_command_comment
-	mov_eax,[DWORD] &command_done     # Using command_done
-	test_eax,eax                      # IF 0 == command_done
+	test_edx,edx                      # IF 0 == command_done
 	je !collect_command               # keep looping
 
 	# Deal with line comments
@@ -207,7 +213,7 @@ DEFINE xor_edx,edx 31D2
 :collect_token
 	push_ebx                          # Protect EBX
 	push_ecx                          # Protect ECX
-	mov_eax,[DWORD] &max_string       # Using max_string
+	mov_eax, %4096                    # Using max_string
 	call %malloc                      # allocate space
 	mov_ebx,eax                       # token = malloc(max_string)
 	mov_ecx,eax                       # i = 0; set token[i]
@@ -227,9 +233,7 @@ DEFINE xor_edx,edx 31D2
 	jne !collect_token_string         # otherwise check next
 
 	# It is a newline
-	push !1
-	pop_eax                           # Using 1
-	mov_[DWORD],eax &command_done     # Set command_done = TRUE
+	inc_edx                           # Set command_done = TRUE
 	jmp !collect_token_done           # Be done
 
 :collect_token_string
@@ -246,9 +250,7 @@ DEFINE xor_edx,edx 31D2
 
 	# It is a line comment
 	call %collect_comment             # Read it all
-	push !1
-	pop_eax                           # Using 1
-	mov_[DWORD],eax &command_done     # Set command_done = TRUE
+	inc_edx                           # Set command_done = TRUE
 	jmp !collect_token_done           # Be done
 
 :collect_token_escape
@@ -314,18 +316,18 @@ DEFINE xor_edx,edx 31D2
 
 # Malloc isn't actually required if the program being built fits in the initial memory
 # However, it doesn't take much to add it.
-# Requires [MALLOC] to be initialized and EAX to have the number of desired bytes
+# Requires EDI to be initialized and EAX to have the number of desired bytes
 :malloc
 	push_ebx                          # Protect EBX
 	push_ecx                          # Protect ECX
 	push_edx                          # Protect EDX
-	mov_ebx,[DWORD] &MALLOC           # Using the current pointer
+	mov_ebx,edi                       # Using the current pointer
 	add_ebx,eax                       # Request the number of desired bytes
 	push !45
 	pop_eax                           # the Syscall # for SYS_BRK
 	int !0x80                         # call the Kernel
-	mov_eax,[DWORD] &MALLOC           # Return pointer
-	mov_[DWORD],ebx &MALLOC           # Update pointer
+	mov_eax,edi                       # Return pointer
+	mov_edi,ebx                       # Update pointer
 	pop_edx                           # Restore EDX
 	pop_ecx                           # Restore ECX
 	pop_ebx                           # Restore EBX
@@ -333,7 +335,7 @@ DEFINE xor_edx,edx 31D2
 
 
 # fgetc function
-# Loads FILE* from [script]
+# Loads FILE* from ESI
 # Returns -4 (EOF) or char in AL
 :fgetc
 	push_ebx                          # Protect EBX
@@ -343,7 +345,7 @@ DEFINE xor_edx,edx 31D2
 	pop_eax                           # Put EOF in eax
 	push_eax                          # Assume bad (If nothing read, value will remain EOF)
 	lea_ecx,[esp]                     # Get stack address
-	mov_ebx,[DWORD] &script           # Where are we reading from
+	mov_ebx,esi                       # Where are we reading from
 	push !3
 	pop_eax                           # the syscall number for read
 	push !1
@@ -411,11 +413,6 @@ DEFINE xor_edx,edx 31D2
 :hard "Subprocess error
 ABORTING HARD
 "
-:script %0
-:command_done %0
-:max_args %1024                           # 256 * sizeof(char*)
-:max_string %4096                         # 4096 * sizeof(char)
-:MALLOC %0
 :status %0
 
 :ELF_end
