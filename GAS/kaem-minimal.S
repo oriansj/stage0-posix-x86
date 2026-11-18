@@ -31,7 +31,7 @@ _start_out:
 
 	test eax, eax               # IF NULL We couldn't open the file
 	jle Exit_Failure            # Abort hard
-	mov [script], eax           # Set input pointer
+	mov esi, eax                # Set input pointer
 
 	pop eax                     # Get start of envp
 	mov ebp, esp                # Protect envp
@@ -40,19 +40,20 @@ _start_out:
 	pop eax                     # the Syscall # for SYS_BRK
 	xor ebx, ebx                # Get current brk
 	int 0x80                    # Let the kernel do the work
-	mov [MALLOC], eax           # Set our malloc pointer
+	mov edi, eax                # Set our malloc pointer
 
 	# Where the main work gets done
+	# Using ESI for script, EDI for MALLOC and EDX for command_done
 	# Using EBX for tokens and ECX for tokens[i]
 main_loop:
-	mov eax, [max_args]         # Using 256 char* of space
+	mov eax, 1024               # Using 256 char* of space
 	call malloc                 # get it
 	mov ebx, eax                # set tokens
 
 	mov ecx, ebx                # I = 0
 	xor eax, eax                # Using 0
 	mov [status], eax           # status = 0
-	mov [command_done], eax     # command_done = 0
+	xor edx, edx                # command_done = 0
 
 	# Using EAX for result and EBX for tokens[i]
 collect_command:
@@ -64,8 +65,7 @@ collect_command:
 	add ecx, 4                  # i = i + 1 (adjusted for char* size)
 
 collect_command_comment:
-	mov eax, [command_done]     # Using command_done
-	test eax, eax               # IF 0 == command_done
+	test edx, edx               # IF 0 == command_done
 	je collect_command          # keep looping
 
 	# Deal with line comments
@@ -161,7 +161,7 @@ print_command_loop:
 collect_token:
 	push ebx                    # Protect EBX
 	push ecx                    # Protect ECX
-	mov eax, [max_string]       # Using max_string
+	mov eax, 4096               # Using max_string
 	call malloc                 # allocate space
 	mov ebx, eax                # token = malloc(max_string)
 	mov ecx, eax                # i = 0; set token[i]
@@ -181,9 +181,7 @@ collect_token_loop:
 	jne collect_token_string    # otherwise check next
 
 	# It is a newline
-	push 1
-	pop eax                     # Using 1
-	mov [command_done], eax     # Set command_done = TRUE
+	inc edx                     # Set command_done = TRUE
 	jmp collect_token_done      # Be done
 
 collect_token_string:
@@ -200,9 +198,7 @@ collect_token_comment:
 
 	# It is a line comment
 	call collect_comment        # Read it all
-	push 1
-	pop eax                     # Using 1
-	mov [command_done], eax     # Set command_done = TRUE
+	inc edx                     # Set command_done = TRUE
 	jmp collect_token_done      # Be done
 
 collect_token_escape:
@@ -268,18 +264,18 @@ collect_comment:
 
 # Malloc isn't actually required if the program being built fits in the initial memory
 # However, it doesn't take much to add it.
-# Requires [MALLOC] to be initialized and EAX to have the number of desired bytes
+# Requires EDI to be initialized and EAX to have the number of desired bytes
 malloc:
 	push ebx                    # Protect EBX
 	push ecx                    # Protect ECX
 	push edx                    # Protect EDX
-	mov ebx, [MALLOC]           # Using the current pointer
+	mov ebx, edi                # Using the current pointer
 	add ebx, eax                # Request the number of desired bytes
 	push 45
 	pop eax                     # the Syscall # for SYS_BRK
 	int 0x80                    # call the Kernel
-	mov eax, [MALLOC]           # Return pointer
-	mov [MALLOC], ebx           # Update pointer
+	mov eax, edi                # Return pointer
+	mov edi, ebx                # Update pointer
 	pop edx                     # Restore EDX
 	pop ecx                     # Restore ECX
 	pop ebx                     # Restore EBX
@@ -287,7 +283,7 @@ malloc:
 
 
 # fgetc function
-# Loads FILE* from [script]
+# Loads FILE* from ESI
 # Returns -4 (EOF) or char in AL
 fgetc:
 	push ebx                    # Protect EBX
@@ -297,7 +293,7 @@ fgetc:
 	pop eax                     # Put EOF in eax
 	push eax                    # Assume bad (If nothing read, value will remain EOF)
 	lea ecx, [esp]              # Get stack address
-	mov ebx, [script]           # Where are we reading from
+	mov ebx, esi                # Where are we reading from
 	push 3
 	pop eax                     # the syscall number for read
 	push 1
@@ -364,9 +360,4 @@ fputc:
 default_file: .asciz "kaem.x86"
 prefix: .asciz " +> "
 hard: .asciz "Subprocess error\nABORTING HARD\n"
-script: .long 0
-command_done: .long 0
-max_args: .long 1024                # 256 * sizeof(char*)
-max_string: .long 4096              # 4096 * sizeof(char)
-MALLOC: .long 0
 status: .long 0
