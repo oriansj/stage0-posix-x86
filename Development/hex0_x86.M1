@@ -37,7 +37,7 @@ DEFINE push 6A
 DEFINE shl_ebp, C1E5
 DEFINE sub_al, 2C
 DEFINE test_eax,eax 85C0
-DEFINE test_esi,esi 85F6
+DEFINE or_eax,esi 09F0
 DEFINE xchg_eax,edi 97
 DEFINE xor_ebx,ebx 31DB
 DEFINE xor_ecx,ecx 31C9
@@ -99,8 +99,7 @@ DEFINE xor_ecx,ecx 31C9
 	je !loop_reset_comment      # If new-line, end comment handling
 
 	# In comment check
-	test_esi,esi                # Skip byte if we are in a comment
-	jne !loop
+	or_eax,esi                  # Skip byte if we are in a comment
 
 	# Start comment check
 	cmp_al, !35                 # Start of '#' comment

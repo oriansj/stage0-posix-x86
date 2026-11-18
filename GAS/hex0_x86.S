@@ -69,8 +69,7 @@ cont:
 	je loop_reset_comment       # If new-line, end comment handling
 
 	# In comment check
-	test esi, esi               # Skip byte if we are in a comment
-	jne loop
+	or eax, esi                 # Skip byte if we are in a comment
 
 	# Start comment check
 	cmp al, 35                  # Start of '#' comment
