@@ -16,7 +16,7 @@
 # Simply jump to _start
 # Our main function
 _start:
-	pop eax                     # Get the number of arguments
+	pop ebp                     # Get the number of arguments
 	pop ebx                     # Get the program name
 	pop ebx                     # Get the actual input name
 	xor ecx, ecx                # prepare read_only, ecx = 0
@@ -34,9 +34,6 @@ _start:
 	cdq                         # edx = 0 since file descriptor is nonnegative
 	inc edx                     # edx = 1 (count for read/write)
 	xchg eax,edi                # Preserve outfile
-
-loop_reset_all:
-	xor ebp, ebp                # ebp = 0 (no prior hex val)
 
 # Comment tracking is done with esi.
 # esi is decremented if we hit a
@@ -106,5 +103,5 @@ write:
 	mov ebx, edi                # Move outfile to ebx
 	mov al, 4                   # Set write syscall in eax
 	int 0x80                    # Do the write
-	jmp loop_reset_all          # Start a fresh byte
+	jmp loop_reset_comment      # Start a fresh byte
 ELF_end:

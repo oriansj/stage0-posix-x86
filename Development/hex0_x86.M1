@@ -29,6 +29,7 @@ DEFINE mov_cx, 66B9
 DEFINE mov_dx, 66BA
 DEFINE neg_edi F7DF
 DEFINE pop_eax 58
+DEFINE pop_ebp 5D
 DEFINE pop_ebx 5B
 DEFINE push_eax 50
 DEFINE push_ebx 53
@@ -38,7 +39,6 @@ DEFINE sub_al, 2C
 DEFINE test_eax,eax 85C0
 DEFINE test_esi,esi 85F6
 DEFINE xchg_eax,edi 97
-DEFINE xor_ebp,ebp 31ED
 DEFINE xor_ebx,ebx 31DB
 DEFINE xor_ecx,ecx 31C9
 
@@ -46,7 +46,7 @@ DEFINE xor_ecx,ecx 31C9
 # Simply jump to _start
 # Our main function
 :_start
-	pop_eax                     # Get the number of arguments
+	pop_ebp                     # Get the number of arguments
 	pop_ebx                     # Get the program name
 	pop_ebx                     # Get the actual input name
 	xor_ecx,ecx                 # prepare read_only, ecx = 0
@@ -64,9 +64,6 @@ DEFINE xor_ecx,ecx 31C9
 	cdq                         # edx = 0 since file descriptor is nonnegative
 	inc_edx                     # edx = 1 (count for read/write)
 	xchg_eax,edi                # Preserve outfile
-
-:loop_reset_all
-	xor_ebp,ebp                 # ebp = 0 (no prior hex val)
 
 # Comment tracking is done with esi.
 # esi is decremented if we hit a
@@ -136,5 +133,5 @@ DEFINE xor_ecx,ecx 31C9
 	mov_ebx,edi                 # Move outfile to ebx
 	mov_al, !4                  # Set write syscall in eax
 	int !0x80                   # Do the write
-	jmp !loop_reset_all         # Start a fresh byte
+	jmp !loop_reset_comment     # Start a fresh byte
 :ELF_end
